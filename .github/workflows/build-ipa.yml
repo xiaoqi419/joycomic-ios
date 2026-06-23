@@ -1,0 +1,35 @@
+name: Build IPA (Free)
+
+on:
+  workflow_dispatch:  # 手动触发
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Export for iOS
+        run: npx expo export --platform ios
+
+      # 打包成 IPA（未签名，适合自签）
+      - name: Create unsigned IPA
+        run: |
+          mkdir -p Payload
+          cp -r dist/ios/*.app Payload/
+          zip -r jmcomic-unsigned.ipa Payload/
+          rm -rf Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jmcomic-ipa-unsigned
+          path: jmcomic-unsigned.ipa
