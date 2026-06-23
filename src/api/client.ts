@@ -16,9 +16,9 @@ export class ApiError extends Error {
   }
 }
 
-// 浏览器级请求头（模拟真实 Safari iOS）
+// 浏览器级请求头（模拟 Android Chrome，参考 PicaComic）
 const BROWSER_HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+  'User-Agent': 'Mozilla/5.0 (Linux; Android 13; Pixel 7 Pro Build/TP1A.220624.014) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36',
   'Accept': 'application/json, text/plain, */*',
   'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
   'Accept-Encoding': 'gzip, deflate, br',

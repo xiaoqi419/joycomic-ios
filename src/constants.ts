@@ -2,11 +2,13 @@
 // @author Jason
 
 // API 域名列表（按优先级排列）
+// 参考 PicaComic(wgh136) 使用的 API 代理域名
 export const API_DOMAINS = [
+  'www.jmeadpoolcdn.one',
+  'www.jmeadpoolcdn.life',
+  'www.jmapiproxyxxx.one',
+  'www.jmfreedomproxy.xyz',
   '18comic.vip',
-  'jmcomic.me',
-  '18comic.org',
-  'jmcomic1.com',
 ];
 
 // 图片 CDN 域名
