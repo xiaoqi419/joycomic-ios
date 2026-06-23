@@ -127,6 +127,8 @@ export async function getChapterDetail(photoId: string | number): Promise<Chapte
 }
 
 async function getScrambleId(photoId: string | number): Promise<number> {
+  // Web 端直接返回默认值（CORS 限制）
+  if (typeof window !== 'undefined') return 220980;
   const ts = nowTs();
   const { token, tokenparam } = generateToken(ts, true);
   try {

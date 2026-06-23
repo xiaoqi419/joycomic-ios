@@ -5,6 +5,10 @@ import { API_DOMAINS } from '../constants';
 import { generateToken, nowTs } from './crypto';
 import type { JmApiResponse } from './types';
 
+// Web 端 CORS 代理地址（仅在浏览器中生效）
+// 需要先运行: node cors-proxy.mjs
+const WEB_PROXY = 'http://localhost:3456';
+
 export class ApiError extends Error {
   constructor(msg: string, public code?: number, public body?: string) {
     super(msg);
@@ -33,6 +37,8 @@ export class ApiClient {
   constructor(private domains: string[] = [...API_DOMAINS]) {}
 
   getDomain(): string {
+    // web 端必须用 18comic.vip（CORS 代理只转发了这个域名）
+    if (typeof window !== 'undefined') return '18comic.vip';
     return this.domains[this.domainIndex % this.domains.length];
   }
 
@@ -45,6 +51,8 @@ export class ApiClient {
    * 初次访问首页，获取 CloudFlare cookies
    */
   async warmUp(): Promise<boolean> {
+    // Web 端不需要 warmUp（走 CORS 代理，没有 CloudFlare 问题）
+    if (typeof window !== 'undefined') return true;
     const domain = this.getDomain();
     try {
       const resp = await fetch(`https://${domain}/`, {
@@ -101,8 +109,11 @@ export class ApiClient {
       headers['Cookie'] = this.cookieJar;
     }
 
-    // 构建 URL
+    // 构建 URL（web 端走本地 CORS 代理）
     let url = `https://${domain}${path}`;
+    if (typeof window !== 'undefined') {
+      url = `${WEB_PROXY}${path}`;
+    }
     if (config.query) {
       const params = new URLSearchParams();
       Object.entries(config.query).forEach(([k, v]) => params.append(k, String(v)));

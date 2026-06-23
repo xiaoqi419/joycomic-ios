@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { ComicCard } from '../components/ComicCard';
 import { getCategoryAlbums } from '../api/mobile';
+import { webCategory } from '../api/web';
 import type { SearchResult } from '../api/types';
 import { CATEGORIES, SORT_OPTIONS } from '../constants';
 import { Colors, Radius, Spacing, FontSize } from '../theme';
@@ -25,13 +26,28 @@ export function HomeScreen({ navigation }: any) {
   const fetch = useCallback(async (p: number, refresh = false) => {
     try {
       setError('');
+      // 先试移动端 API
       const r = await getCategoryAlbums({ page: p, category: cat, sort });
       if (refresh || p === 1) setAlbums(r.content);
       else setAlbums(prev => [...prev, ...r.content]);
       setHasMore(r.content.length >= 20);
     } catch (e: any) {
-      console.error('首页加载失败:', e.message);
-      setError(e.message || '加载失败');
+      console.warn('移动端API失败, 尝试网页端:', e.message);
+      try {
+        // 降级到网页端 HTML 解析
+        const results = await webCategory(p, sort);
+        if (results.length > 0) {
+          if (refresh || p === 1) setAlbums(results);
+          else setAlbums(prev => [...prev, ...results]);
+          setHasMore(results.length >= 20);
+          setError('');
+        } else {
+          setError('暂无数据，请检查网络或代理');
+        }
+      } catch (e2: any) {
+        console.error('网页端也失败了:', e2.message);
+        setError('无法连接禁漫天堂，请确保网络/代理正常\n' + (e2.message || ''));
+      }
     }
   }, [cat, sort]);
 
