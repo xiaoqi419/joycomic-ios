@@ -32,8 +32,15 @@ http.createServer(async (req, res) => {
     if (req.headers.cookie) headers['cookie'] = req.headers.cookie;
     if (req.headers['content-type']) headers['content-type'] = req.headers['content-type'];
 
-    const resp = await fetch(targetUrl, { method: req.method, headers });
-    const body = await resp.arrayBuffer();
+    // 转发 POST body
+    let body = null;
+    if (req.method === 'POST') {
+      const chunks = [];
+      for await (const chunk of req) chunks.push(chunk);
+      body = Buffer.concat(chunks);
+    }
+    const resp = await fetch(targetUrl, { method: req.method, headers, body });
+    const respBody = await resp.arrayBuffer();
     const origin = req.headers['origin'] || '*';
     res.writeHead(resp.status, {
       'Access-Control-Allow-Origin': origin,
@@ -41,7 +48,7 @@ http.createServer(async (req, res) => {
       'Access-Control-Allow-Headers': '*',
       'Content-Type': resp.headers.get('content-type') || 'application/octet-stream',
     });
-    res.end(Buffer.from(body));
+    res.end(Buffer.from(respBody));
   } catch (err) {
     res.writeHead(502, { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'text/plain' });
     res.end(`Proxy Error: ${err.message}`);
