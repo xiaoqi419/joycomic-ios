@@ -8,7 +8,6 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { View, ActivityIndicator } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { MaterialIcons } from '@expo/vector-icons';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { SearchScreen } from './src/screens/SearchScreen';
@@ -57,14 +56,10 @@ function HomeTabs() {
     <Tab.Navigator screenOptions={{
       headerShown: false,
       tabBarStyle: {
-        position: 'absolute',
-        backgroundColor: 'transparent',
-        borderTopWidth: 0,
-        elevation: 0,
+        backgroundColor: 'rgba(255,255,255,0.72)',
+        borderTopWidth: 0.5,
+        borderTopColor: 'rgba(60,60,67,0.08)',
       },
-      tabBarBackground: () => (
-        <BlurView tint="light" intensity={80} style={{ flex: 1, borderTopWidth: 0.5, borderTopColor: 'rgba(60,60,67,0.08)' }} />
-      ),
       tabBarActiveTintColor: Colors.primary,
       tabBarInactiveTintColor: 'rgba(60,60,67,0.4)',
       tabBarLabelStyle: { fontSize: 11, fontWeight: '500', marginBottom: 2 },
