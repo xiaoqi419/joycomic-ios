@@ -1,57 +1,46 @@
-// 收藏页 — React Native Paper
+// 收藏页 - 樱花绯红主题
 // @author Jason
 
 import React, { useEffect } from 'react';
-import { View, FlatList, ActivityIndicator } from 'react-native';
-import { Text, Button, List, Divider } from 'react-native-paper';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Image } from 'expo-image';
-import { useNavigation } from '@react-navigation/native';
-import { MaterialIcons } from '@expo/vector-icons';
 import { useFavoritesStore } from '../store/useFavorites';
-import { Colors, Spacing } from '../theme';
+import { Colors, Radius, Spacing, FontSize } from '../theme';
 
-export function FavoritesScreen() {
-  const navigation = useNavigation<any>();
+export function FavoritesScreen({ navigation }: any) {
   const { items, isLoading, loadFavorites, removeFavorite } = useFavoritesStore();
   useEffect(() => { loadFavorites(); }, []);
 
-  if (isLoading) return <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}><View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator size="large" color={Colors.primary} /></View></SafeAreaView>;
+  if (isLoading) return <SafeAreaView style={styles.container}><View style={styles.center}><ActivityIndicator size="large" color={Colors.primary} /></View></SafeAreaView>;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
+    <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
-      <FlatList data={items} keyExtractor={i => i.id}
-        contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
-        ListHeaderComponent={
-          <Text variant="headlineMedium" style={{ fontWeight: '800', marginBottom: 16, color: Colors.textPrimary }}>
-            我的收藏 ({items.length})
-          </Text>
-        }
-        ListEmptyComponent={
-          <View style={{ alignItems: 'center', marginTop: 60 }}>
-            <MaterialIcons name="bookmark-border" size={64} color={Colors.textTertiary} />
-            <Text style={{ color: Colors.textSecondary, marginTop: 12, fontSize: 16 }}>还没有收藏</Text>
-            <Text style={{ color: Colors.textTertiary, fontSize: 13, marginTop: 4 }}>在漫画详情页点击收藏按钮即可添加</Text>
-          </View>
-        }
+      <FlatList data={items} keyExtractor={i => i.id} contentContainerStyle={{ padding: Spacing.marginEdge, paddingBottom: Spacing.xl * 2 }}
+        ListHeaderComponent={<Text style={{ fontSize: FontSize.title, fontWeight: '700', color: Colors.textPrimary, marginBottom: Spacing.md }}>我的收藏 <Text style={{ fontSize: FontSize.body, color: Colors.textSecondary, fontWeight: '400' }}>({items.length})</Text></Text>}
+        ListEmptyComponent={<View style={{ alignItems: 'center', marginTop: 60 }}><Text style={{ fontSize: 48, marginBottom: Spacing.md }}>📚</Text><Text style={{ fontSize: FontSize.bodyLarge, color: Colors.textSecondary, marginBottom: Spacing.xs }}>还没有收藏</Text><Text style={{ fontSize: FontSize.body, color: Colors.textTertiary }}>在漫画详情页点击收藏按钮即可添加</Text></View>}
         renderItem={({ item }) => (
-          <List.Item
-            title={item.title} description={item.author}
-            titleNumberOfLines={2}
-            left={() => (
-              <Image source={{ uri: item.coverUrl }} style={{ width: 48, height: 64, borderRadius: 4, backgroundColor: Colors.surfaceContainer }}
-                contentFit="cover" />
-            )}
-            right={() => (
-              <Button mode="text" textColor={Colors.error} compact onPress={() => removeFavorite(item.id)}>删除</Button>
-            )}
-            onPress={() => navigation.navigate('AlbumDetail', { albumId: item.id })}
-            style={{ backgroundColor: Colors.surfaceLowest, borderRadius: 8, marginBottom: 4, paddingVertical: 4 }}
-          />
+          <TouchableOpacity style={{ flexDirection: 'row', backgroundColor: Colors.surfaceLowest, borderRadius: Radius.sm, padding: 10, marginBottom: 10, alignItems: 'center' }}
+            onPress={() => navigation.navigate('AlbumDetail', { albumId: item.id })} activeOpacity={0.8}>
+            <Image source={{ uri: item.coverUrl }} style={{ width: 60, height: 80, borderRadius: Radius.xs, backgroundColor: Colors.surfaceContainer }} contentFit="cover" />
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <Text style={{ fontSize: FontSize.bodyLarge, fontWeight: '600', color: Colors.textPrimary, marginBottom: 2 }} numberOfLines={2}>{item.title}</Text>
+              <Text style={{ fontSize: FontSize.label, color: Colors.textSecondary }}>{item.author}</Text>
+            </View>
+            <TouchableOpacity style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: Radius.xs, borderWidth: 1, borderColor: Colors.error + '40' }}
+              onPress={() => removeFavorite(item.id)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Text style={{ fontSize: FontSize.label, color: Colors.error, fontWeight: '500' }}>删除</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
         )}
       />
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: Colors.background },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+});

@@ -3,7 +3,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { PaperProvider, MD3LightTheme } from 'react-native-paper';
 import { NavigationContainer, Theme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -19,21 +18,6 @@ import { SettingsScreen } from './src/screens/SettingsScreen';
 import { useSettingsStore, useFavoritesStore } from './src/store';
 import { detectServers } from './src/utils/serverDetect';
 import { Colors } from './src/theme';
-
-const paperTheme = {
-  ...MD3LightTheme,
-  colors: {
-    ...MD3LightTheme.colors,
-    primary: Colors.primary,
-    secondary: Colors.accent,
-    background: Colors.background,
-    surface: Colors.surfaceLowest,
-    surfaceVariant: Colors.surfaceContainerLow,
-    onSurface: Colors.textPrimary,
-    onSurfaceVariant: Colors.textSecondary,
-    outline: Colors.border,
-  },
-};
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -131,7 +115,6 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <PaperProvider theme={paperTheme}>
       <NavigationContainer theme={navTheme}>
         <StatusBar style="dark" />
         <Stack.Navigator screenOptions={{
@@ -148,7 +131,6 @@ export default function App() {
             options={{ headerShown: false, orientation: 'landscape' }} />
         </Stack.Navigator>
       </NavigationContainer>
-      </PaperProvider>
     </SafeAreaProvider>
   );
 }
