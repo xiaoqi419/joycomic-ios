@@ -42,11 +42,12 @@ export class ApiClient {
     }
     const avs = this.avsToken || globalAvs;
     if (avs) {
-      h['Cookie'] = `AVS=${avs}`;
-    }
-    // 硬编码测试 AVS
-    if (!h['Cookie']) {
-      h['Cookie'] = 'AVS=ujl5q32pkmu9c8tc0opjl84ddc';
+      // 浏览器不允许直接设 Cookie，用 X-AVS 让代理转换
+      if (typeof window !== 'undefined') {
+        h['X-AVS'] = avs;
+      } else {
+        h['Cookie'] = `AVS=${avs}`;
+      }
     }
     return h;
   }

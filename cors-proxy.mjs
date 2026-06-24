@@ -31,6 +31,8 @@ http.createServer(async (req, res) => {
     if (req.headers.token) headers['token'] = req.headers.token;
     if (req.headers.tokenparam) headers['tokenparam'] = req.headers.tokenparam;
     if (req.headers.cookie) headers['cookie'] = req.headers.cookie;
+    // 浏览器不能直接设 Cookie，通过 X-AVS 中转
+    if (req.headers['x-avs']) headers['cookie'] = (headers['cookie'] ? headers['cookie'] + '; ' : '') + `AVS=${req.headers['x-avs']}`;
     if (req.headers['content-type']) headers['content-type'] = req.headers['content-type'];
 
     // 转发 POST body
