@@ -31,9 +31,9 @@ const navTheme: Theme = {
   colors: {
     primary: Colors.primary,
     background: Colors.background,
-    card: Colors.surfaceLowest,
+    card: Colors.surface,
     text: Colors.textPrimary,
-    border: Colors.tabBarBorder,
+    border: Colors.border,
     notification: Colors.primary,
   },
   fonts: {
