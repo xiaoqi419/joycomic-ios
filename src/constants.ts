@@ -10,8 +10,12 @@ export const API_DOMAINS = [
   'www.cdnutc.me',
 ];
 
-// 图片 CDN 域名（复用 API 域名，CDN 域名被墙）
-export const IMAGE_DOMAINS = API_DOMAINS;
+// 图片 CDN 域名
+export const IMAGE_DOMAINS = [
+  'cdn-msp.18comic.vip',
+  'cdn-msp2.18comic.vip',
+  'cdn-msp3.18comic.vip',
+];
 
 // APP 接口加密常量（参考 PicaComic）
 export const APP_TOKEN_SECRET = '18comicAPPContent';

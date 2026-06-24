@@ -121,14 +121,19 @@ export async function getChapterDetail(photoId: string | number): Promise<Chapte
   const data = decryptAndParse<any>(ts, encrypted);
   const scrambleId = await getScrambleId(photoId);
 
+  // 构建图片 URL 列表 (data.images = ["00001.webp", "00002.webp", ...])
+  const imageFiles: string[] = Array.isArray(data.images) ? data.images : [];
+  const imageUrls = imageFiles.map(fn => getPhotoUrl(IMAGE_DOMAINS[0], id, fn));
+
   return {
     id, albumId: String(data.album_id || data.aid || ''),
     title: data.name || data.title || '',
     pageArr: data.page_arr || data.pageArr || [],
-    dataOriginalDomain: data.data_original_domain || data.imageDomain || '',
+    dataOriginalDomain: data.data_original_domain || '',
     scrambleId, seriesId: data.series_id || data.seriesId || 0,
     sort: data.sort || 0, tags: parseArr(data.tags),
-    pageCount: (data.images || data.files || data.imgList || []).length,
+    pageCount: imageFiles.length,
+    images: imageUrls,
   };
 }
 
@@ -188,7 +193,12 @@ export function getImageUrl(imageDomain: string, photoId: string | number, pageN
   return `https://${imageDomain}/media/photos/${photoId}/${String(pageNum).padStart(5, '0')}.jpg`;
 }
 
-/** 获取封面图 URL */
+/** 获取封面图 URL（使用 CDN 域名） */
 export function getCoverUrl(imageDomain: string, albumId: string | number): string {
   return `https://${imageDomain}/media/albums/${albumId}.jpg`;
+}
+
+/** 获取图片 URL（章节内页） */
+export function getPhotoUrl(imageDomain: string, chapterId: string | number, filename: string): string {
+  return `https://${imageDomain}/media/photos/${chapterId}/${filename}`;
 }

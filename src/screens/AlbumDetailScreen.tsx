@@ -28,10 +28,11 @@ export function AlbumDetailScreen({ route, navigation }: any) {
   const openChapter = async (chId: string) => {
     try {
       const ch = await getChapterDetail(chId);
-      const dom = ch.dataOriginalDomain || IMAGE_DOMAINS[0];
-      const imgs = ch.pageArr.length > 0
-        ? ch.pageArr.map((a: number[], i: number) => `https://${dom}/media/photos/${chId}/${String(a[0] || i + 1).padStart(5, '0')}.jpg`)
-        : Array.from({ length: ch.pageCount || 20 }, (_, i) => getImageUrl(dom, chId, i + 1));
+      const imgs = ch.images && ch.images.length > 0
+        ? ch.images
+        : ch.pageArr.length > 0
+          ? ch.pageArr.map((a: number[], i: number) => `https://${ch.dataOriginalDomain || IMAGE_DOMAINS[0]}/media/photos/${chId}/${String(a[0] || i + 1).padStart(5, '0')}.jpg`)
+          : Array.from({ length: ch.pageCount || 20 }, (_, i) => getImageUrl(IMAGE_DOMAINS[0], chId, i + 1));
       startReading(albumId, chId, imgs);
       navigation.navigate('Reader', { chapterId: chId, albumId });
     } catch {}

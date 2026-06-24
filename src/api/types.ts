@@ -76,6 +76,8 @@ export interface ChapterDetail {
   sort: number;
   tags: string[];
   pageCount: number;
+  /** 图片 URL 列表 */
+  images?: string[];
 }
 
 export interface PageImage {
