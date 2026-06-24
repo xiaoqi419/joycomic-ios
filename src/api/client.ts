@@ -33,8 +33,17 @@ const BROWSER_HEADERS = {
 export class ApiClient {
   private domainIndex = 0;
   private cookieJar: string = '';
+  private avsToken: string = '';
 
   constructor(private domains: string[] = [...API_DOMAINS]) {}
+
+  setAvs(token: string) {
+    this.avsToken = token;
+  }
+
+  getAvs() {
+    return this.avsToken;
+  }
 
   getDomain(): string {
     if (typeof window !== 'undefined') return this.domains[0];
@@ -116,6 +125,9 @@ export class ApiClient {
     }
     if (this.cookieJar) {
       headers['Cookie'] = this.cookieJar;
+    }
+    if (this.avsToken) {
+      headers['Cookie'] = (headers['Cookie'] ? headers['Cookie'] + '; ' : '') + `AVS=${this.avsToken}`;
     }
 
     // 构建 URL（web 端走本地 CORS 代理）

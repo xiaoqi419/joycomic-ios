@@ -223,11 +223,19 @@ export async function getWeekRecommend(): Promise<{ categories: { id: string; na
 export async function login(username: string, password: string): Promise<LoginResult> {
   try {
     const ts = nowTs();
-    const data = decryptAndParse<any>(ts, await apiClient.postMobile<string>(API_PATHS.LOGIN, { username, password }));
+    const encrypted = await apiClient.postMobile<string>(API_PATHS.LOGIN, { username, password });
+    const data = decryptAndParse<any>(ts, encrypted);
+    // 保存 AVS token 到全局客户端，后续请求自动携带
+    if (data.s || data.token) {
+      apiClient.setAvs(data.s || data.token);
+    }
+    if (data.avs) {
+      apiClient.setAvs(data.avs);
+    }
     return {
       success: true,
       username: data.username || username,
-      token: data.token || data.Token || '',
+      token: data.s || data.token || '',
       photo: data.photo || data.avatar || '',
     };
   } catch (e: any) { return { success: false, error: e.message || '登录失败' }; }
