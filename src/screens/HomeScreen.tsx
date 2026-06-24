@@ -35,7 +35,7 @@ export function HomeScreen({ navigation }: any) {
       console.warn('移动端API失败, 尝试网页端:', e.message);
       try {
         // 降级到网页端 HTML 解析
-        const results = await webCategory(p, sort);
+        const results = await webCategory(p);
         if (results.length > 0) {
           if (refresh || p === 1) setAlbums(results);
           else setAlbums(prev => [...prev, ...results]);
