@@ -26,29 +26,23 @@ export function needsScramble(scrambleId: number): boolean {
 }
 
 function proxyImgUrl(url: string): string {
-  // 只在浏览器 web 环境走代理
   if (typeof navigator === 'undefined' || navigator.product === 'ReactNative') return url;
   const m = url.match(/https:\/\/([^/]+)(\/.*)/);
   return m ? `http://localhost:3456/${m[1]}${m[2]}` : url;
 }
 
-/** 从 API 返回的 images 文件名数组构建完整 URL（自动代理 + scramble 参数） */
+/**
+ * 构建章节图片 URL 列表
+ * page_arr API 格式: [[pageNum, width, height], ...]
+ * images API 格式: 可能是 ["00001.webp", ...] 或 [[pageNum, w, h], ...]
+ * 安全的做法: 只用 pageCount 决定数量，扩展名用 .webp
+ */
 export function buildChapterImageUrls(
   host: string,
   chapterId: string,
   pageCount: number,
   scrambleId: number,
-  imageFilenames?: string[],
 ): string[] {
-  // 优先用 API 返回的文件名（含正确扩展名如 .webp）
-  if (imageFilenames?.length) {
-    return imageFilenames.map((fn) => {
-      let url = `https://${host}/media/photos/${chapterId}/${fn}`;
-      if (needsScramble(scrambleId)) url += `?scramble=${scrambleId}`;
-      return proxyImgUrl(url);
-    });
-  }
-  // fallback: 生成 00001.webp 等（CDN 实际使用 webp）
   const urls: string[] = [];
   for (let i = 1; i <= pageCount; i++) {
     let url = `https://${host}/media/photos/${chapterId}/${String(i).padStart(5, '0')}.webp`;

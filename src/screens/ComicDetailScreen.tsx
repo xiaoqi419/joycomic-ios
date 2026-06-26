@@ -83,7 +83,7 @@ export function ComicDetailScreen() {
     try {
       const data = await fetchComicRead(chId);
       const host = getImgHost();
-      const images = buildChapterImageUrls(host, chId, data.page_count || data.images?.length || 20, data.scramble_id, data.images);
+      const images = buildChapterImageUrls(host, chId, data.page_count || data.images?.length || 20, data.scramble_id);
 
       useReaderStore.getState().startReading(albumId, chId, chName, images);
       useHistoryStore.getState().add({
