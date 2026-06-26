@@ -1,34 +1,31 @@
-// ScrambledImage — WebView Canvas 方式解码 scramble 图片
-// EAS Build (IPA) 可用，Expo Go 显示原始图片
+// ScrambledImage — WebView Canvas 解码 scramble 图片
+// iOS EAS Build: expo-file-system 下载 → WebView Canvas 处理 → 显示解码图
 // @author nyx
 
-import React, { useRef, useState } from 'react';
-import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, ActivityIndicator, Platform } from 'react-native';
 import { Image } from 'expo-image';
+import * as FileSystem from 'expo-file-system';
 
 interface Props {
   imageUrl: string;
   scrambleId: number;
-  albumId?: string;
   style?: any;
   onLoad?: () => void;
 }
 
-// Canvas 解码脚本
-const SCRAMBLE_HTML = `
-<!DOCTYPE html>
-<html>
-<body>
+function buildHtml(base64Data: string, gridSize: number): string {
+  return `<!DOCTYPE html>
+<html><body>
 <script>
 (function(){
   var img = new Image();
-  img.crossOrigin = "anonymous";
   img.onload = function(){
     var c = document.createElement('canvas');
     var ctx = c.getContext('2d');
     var w = img.naturalWidth, h = img.naturalHeight;
     c.width = w; c.height = h;
-    var n = 10;
+    var n = ${gridSize};
     var sh = Math.floor(h / n);
     var r = h % n;
     for(var i=0; i<n; i++){
@@ -40,28 +37,75 @@ const SCRAMBLE_HTML = `
     window.ReactNativeWebView.postMessage(c.toDataURL('image/jpeg',0.85));
   };
   img.onerror = function(){ window.ReactNativeWebView.postMessage('ERR'); };
-  img.src = '__URL__';
+  img.src = '${base64Data}';
 })();
 <\/script>
-</body>
-</html>`;
+</body></html>`;
+}
+
+function calcGridSize(scrambleId: number): number {
+  if (scrambleId <= 0) return 10;
+  const r = scrambleId % 10;
+  const gridMap: Record<number, number> = {
+    0: 2, 1: 4, 2: 6, 3: 8, 4: 10,
+    5: 12, 6: 14, 7: 16, 8: 18, 9: 20,
+  };
+  return gridMap[r] || 10;
+}
 
 export function ScrambledImage({ imageUrl, scrambleId, style, onLoad }: Props) {
   const [decoded, setDecoded] = useState<string | null>(null);
   const needsScramble = scrambleId !== 0 && scrambleId !== 220980;
 
-  // 不需要 scramble 或不是 EAS Build → 直接显示
-  if (!needsScramble || Platform.OS === 'web') {
+  if (!needsScramble) {
     return <Image source={{ uri: imageUrl }} style={[{ flex: 1, width: '100%' }, style]} contentFit="contain" onLoad={onLoad} />;
   }
 
-  // iOS EAS Build: 用 WebView Canvas 解码
   if (decoded) {
     return <Image source={{ uri: decoded }} style={[{ flex: 1, width: '100%' }, style]} contentFit="contain" onLoad={onLoad} />;
   }
 
-  // 用 WebView 执行 canvas 解码
-  const html = SCRAMBLE_HTML.replace('__URL__', imageUrl);
+  // Web 环境无法解码
+  if (Platform.OS === 'web') {
+    return <Image source={{ uri: imageUrl }} style={[{ flex: 1, width: '100%' }, style]} contentFit="contain" onLoad={onLoad} />;
+  }
+
+  return <DescrambleRunner imageUrl={imageUrl} scrambleId={scrambleId} onResult={setDecoded} onLoad={onLoad} />;
+}
+
+function DescrambleRunner({ imageUrl, scrambleId, onResult, onLoad }: {
+  imageUrl: string; scrambleId: number; onResult: (uri: string) => void; onLoad: () => void;
+}) {
+  const [html, setHtml] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        // 用 expo-file-system 下载图片为 base64（无 CORS 限制）
+        const dest = FileSystem.cacheDirectory + 'tmp_scramble_' + Date.now() + '.jpg';
+        const result = await FileSystem.downloadAsync(imageUrl, dest);
+        const base64 = await FileSystem.readAsStringAsync(result.uri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        const dataUri = 'data:image/jpeg;base64,' + base64;
+        const gridSize = calcGridSize(scrambleId);
+        setHtml(buildHtml(dataUri, gridSize));
+        // 清理缓存
+        FileSystem.deleteAsync(dest, { idempotent: true }).catch(() => {});
+      } catch {
+        onLoad();
+      }
+    })();
+  }, []);
+
+  if (!html) {
+    return (
+      <View style={[{ flex: 1, width: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }, style]}>
+        <ActivityIndicator size="small" color="#F59E0B" />
+      </View>
+    );
+  }
+
   try {
     const WebView = require('react-native-webview').WebView;
     return (
@@ -70,19 +114,16 @@ export function ScrambledImage({ imageUrl, scrambleId, style, onLoad }: Props) {
           source={{ html }}
           style={{ flex: 1, opacity: 0, height: 0 }}
           onMessage={(e: any) => {
-            if (e.nativeEvent.data === 'ERR') { setDecoded(imageUrl); onLoad?.(); }
-            else { setDecoded(e.nativeEvent.data); onLoad?.(); }
+            if (e.nativeEvent.data !== 'ERR') onResult(e.nativeEvent.data);
+            onLoad();
           }}
           javaScriptEnabled
           domStorageEnabled
         />
-        <View style={StyleSheet.absoluteFill}>
-          <ActivityIndicator size="small" color="#F59E0B" />
-        </View>
       </View>
     );
   } catch {
-    // WebView not available (Expo Go) → fallback to raw image
-    return <Image source={{ uri: imageUrl }} style={[{ flex: 1, width: '100%' }, style]} contentFit="contain" onLoad={onLoad} />;
+    onLoad();
+    return <Image source={{ uri: imageUrl }} style={[{ flex: 1, width: '100%' }, style]} contentFit="contain" />;
   }
 }
