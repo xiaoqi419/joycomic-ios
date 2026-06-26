@@ -1,0 +1,53 @@
+# Codemagic Free Tier — Expo iOS unsigned IPA
+workflows:
+  build-ipa:
+    name: Build Unsigned IPA
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    environment:
+      groups:
+        - app_store_credentials
+      vars:
+        EXPO_PUBLIC_PROJECT_ID: "3f522f1e-f1a2-4fd4-a09d-f5b30ee19be8"
+      node: 20
+    triggering:
+      events:
+        - push
+        - tag
+      branch_patterns:
+        - pattern: main
+          include: true
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+      - name: Expo prebuild
+        script: npx expo prebuild --platform ios --no-install
+      - name: Install CocoaPods
+        script: npx pod-install
+      - name: Build unsigned IPA
+        script: |
+          cd ios
+          WS=$(ls -d *.xcworkspace 2>/dev/null | head -1)
+          PR=$(ls -d *.xcodeproj 2>/dev/null | head -1)
+          SC=$(echo "$PR" | sed 's/\.xcodeproj//')
+          xcodebuild -workspace "$WS" \
+            -scheme "$SC" \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath ../build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            DEVELOPMENT_TEAM="" \
+            build
+      - name: Package IPA
+        script: |
+          APP=$(find build -name "*.app" -type d | head -1)
+          mkdir -p Payload
+          cp -r "$APP" Payload/
+          zip -r jmcomic-unsigned.ipa Payload/
+    artifacts:
+      - jmcomic-unsigned.ipa
+    publishing:
+      email:
+        recipients:
+          - builder@example.com
