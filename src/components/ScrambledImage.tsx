@@ -5,7 +5,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator, Platform } from 'react-native';
 import { Image } from 'expo-image';
-import * as FileSystem from 'expo-file-system';
 
 interface Props {
   imageUrl: string;
@@ -65,11 +64,12 @@ export function ScrambledImage({ imageUrl, scrambleId, style, onLoad }: Props) {
     return <Image source={{ uri: decoded }} style={[{ flex: 1, width: '100%' }, style]} contentFit="contain" onLoad={onLoad} />;
   }
 
-  // Web 环境无法解码
+  // Web/Expo Go 无法解码，直接显示原图
   if (Platform.OS === 'web') {
     return <Image source={{ uri: imageUrl }} style={[{ flex: 1, width: '100%' }, style]} contentFit="contain" onLoad={onLoad} />;
   }
 
+  // iOS EAS Build: 下载 → WebView 解码
   return <DescrambleRunner imageUrl={imageUrl} scrambleId={scrambleId} onResult={setDecoded} onLoad={onLoad} />;
 }
 
@@ -81,7 +81,8 @@ function DescrambleRunner({ imageUrl, scrambleId, onResult, onLoad }: {
   useEffect(() => {
     (async () => {
       try {
-        // 用 expo-file-system 下载图片为 base64（无 CORS 限制）
+        // 动态导入 expo-file-system（web 上不加载）
+        const FileSystem = require('expo-file-system');
         const dest = FileSystem.cacheDirectory + 'tmp_scramble_' + Date.now() + '.jpg';
         const result = await FileSystem.downloadAsync(imageUrl, dest);
         const base64 = await FileSystem.readAsStringAsync(result.uri, {
@@ -90,11 +91,8 @@ function DescrambleRunner({ imageUrl, scrambleId, onResult, onLoad }: {
         const dataUri = 'data:image/jpeg;base64,' + base64;
         const gridSize = calcGridSize(scrambleId);
         setHtml(buildHtml(dataUri, gridSize));
-        // 清理缓存
         FileSystem.deleteAsync(dest, { idempotent: true }).catch(() => {});
-      } catch {
-        onLoad();
-      }
+      } catch { onLoad(); }
     })();
   }, []);
 
