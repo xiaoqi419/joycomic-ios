@@ -11,9 +11,8 @@ setGlobalDispatcher(new ProxyAgent('http://127.0.0.1:7897'));
 
 // Scramble descramble: 图像分割成 N 条水平带 → 反转顺序重组
 function calcGridSize(aid, filename, scrambleId) {
-  // 原版 APK 算法: MD5(aid + scramble_id) → switch → gridSize
-  // (aid 是章节 ID, 如 287529)
-  const s = String(aid) + String(scrambleId);
+  // 原版 APK 算法: MD5(scramble_id + aid) → switch → gridSize
+  const s = String(scrambleId) + String(aid);
   const hash = crypto.createHash('md5').update(s).digest('hex');
   let r = hash.charCodeAt(hash.length - 1);
   

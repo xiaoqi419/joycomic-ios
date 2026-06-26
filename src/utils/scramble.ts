@@ -5,7 +5,7 @@
 /** 计算网格数 (原版 APK 算法) */
 export function calcGridSize(aid: string, filename: string, scrambleId: number): number {
   // MD5(aid + scrambleId) → switch → gridSize
-  const s = String(aid) + String(scrambleId);
+  const s = String(scrambleId) + String(aid);
   const hash = md5Simple(s);
   let r = hash.charCodeAt(hash.length - 1);
   
