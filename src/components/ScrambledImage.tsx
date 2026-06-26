@@ -28,7 +28,7 @@ function buildHtml(base64Data: string, gridSize: number): string {
     var sh = Math.floor(h / n);
     var r = h % n;
     for(var i=0; i<n; i++){
-      var sy = h - sh*(i+1) - (i===0?0:r);
+      var sy = h - sh*(i+1) - r;
       var dy = sh * i;
       var ch = sh + (i===0?r:0);
       ctx.drawImage(img, 0, sy, w, ch, 0, dy, w, ch);
