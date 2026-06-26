@@ -40,19 +40,21 @@ export function buildChapterImageUrls(
   chapterId: string,
   pageCount: number,
   scrambleId: number,
+  albumId?: string,
   images?: { page: number; image: string }[],
 ): string[] {
+  const aid = albumId || chapterId;
   if (images?.length) {
     return images.map((item) => {
       const fn = extractFilename(item.image);
-      return item.image + "?sc=" + scrambleId + "&aid=" + chapterId + "&fn=" + fn;
+      return item.image + "?sc=" + scrambleId + "&aid=" + aid + "&fn=" + fn;
     });
   }
   const urls: string[] = [];
   for (let i = 1; i <= pageCount; i++) {
     const fn = String(i).padStart(5, "0") + ".webp";
     const url = "https://" + host + "/media/photos/" + chapterId + "/" + fn;
-    urls.push(url + "?sc=" + scrambleId + "&aid=" + chapterId + "&fn=" + fn);
+    urls.push(url + "?sc=" + scrambleId + "&aid=" + aid + "&fn=" + fn);
   }
   return urls;
 }
