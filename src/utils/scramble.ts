@@ -40,10 +40,9 @@ export function buildChapterImageUrls(
   chapterId: string,
   pageCount: number,
   scrambleId: number,
-  albumId?: string,
   images?: { page: number; image: string }[],
 ): string[] {
-  const aid = albumId || chapterId;
+  const aid = chapterId;
   if (images?.length) {
     return images.map((item) => {
       const fn = extractFilename(item.image);

@@ -56,7 +56,6 @@ export function ReaderScreen() {
         getImgHost(), chId,
         data.page_count || data.images?.length || 20,
         data.scramble_id,
-        albumId,
         data.images as any,
       );
       startReading(albumId || data.album_id, chId, chName, images, data.scramble_id);
