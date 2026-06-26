@@ -56,7 +56,8 @@ export function ScrambledImage({ imageUrl, scrambleId, style, onLoad }: Props) {
   const [decoded, setDecoded] = useState<string | null>(null);
   const needsScramble = scrambleId !== 0 && scrambleId !== 220980;
 
-  if (!needsScramble) {
+  // 始终解码（CDN 对所有图片都做了 scramble）
+  if (Platform.OS === 'web') {
     return <Image source={{ uri: imageUrl }} style={[{ flex: 1, width: '100%' }, style]} contentFit="contain" onLoad={onLoad} />;
   }
 
@@ -64,8 +65,6 @@ export function ScrambledImage({ imageUrl, scrambleId, style, onLoad }: Props) {
     return <Image source={{ uri: decoded }} style={[{ flex: 1, width: '100%' }, style]} contentFit="contain" onLoad={onLoad} />;
   }
 
-  // Web/Expo Go 无法解码，直接显示原图
-  if (Platform.OS === 'web') {
     return <Image source={{ uri: imageUrl }} style={[{ flex: 1, width: '100%' }, style]} contentFit="contain" onLoad={onLoad} />;
   }
 
