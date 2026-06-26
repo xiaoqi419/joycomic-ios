@@ -29,7 +29,7 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
   scrambleId: 0,
   currentPage: 0,
   direction: 'ltr',
-  isVertical: true,
+  isVertical: false,
 
   startReading: (albumId, chapterId, chapterTitle, images, scrambleId = 0) => {
     set({ albumId, chapterId, chapterTitle, imageUrls: images, currentPage: 0, scrambleId });

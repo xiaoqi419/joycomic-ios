@@ -100,8 +100,13 @@ http.createServer(async (req, res) => {
 
     // Descramble if image with scramble params
     if (isImage) {
-      console.log(`[descramble] ${restPath} sc=${sc} aid=${aid}`);
-      respBody = await descrambleImage(respBody, sc, aid);
+      try {
+        console.log(`[descramble] ${restPath} sc=${sc} aid=${aid}`);
+        respBody = await descrambleImage(respBody, sc, aid);
+      } catch (e) {
+        console.error(`[descramble FAIL] ${restPath}: ${e.message}`);
+        // 解码失败返回原图
+      }
     }
 
     const origin = req.headers['origin'] || '*';
