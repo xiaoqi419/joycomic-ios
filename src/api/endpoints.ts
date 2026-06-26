@@ -67,6 +67,14 @@ export async function fetchMoreList(id: string, page = 1): Promise<MoreListData>
   return encryptedGet<MoreListData>('serialization', { id, page });
 }
 
+export async function fetchCategoriesFilter(params: { c?: string; page?: number; o?: string }): Promise<MoreListData> {
+  return encryptedGet<MoreListData>('categories/filter', {
+    c: params.c || 'all',
+    page: params.page || 1,
+    o: params.o || 'mv',
+  });
+}
+
 export async function fetchAlbumDetail(albumId: string): Promise<AlbumDetail> {
   return encryptedGet<AlbumDetail>('album', { id: albumId });
 }

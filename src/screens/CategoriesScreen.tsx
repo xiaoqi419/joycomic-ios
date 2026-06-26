@@ -2,13 +2,13 @@
 // @author nyx
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, FlatList, Pressable, StyleSheet, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, Pressable, StyleSheet, RefreshControl, ActivityIndicator, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, FontSize, Radius } from '../theme';
 import { ComicCard } from '../components/ComicCard';
-import { fetchMoreList, getCoverUrl as getCover } from '../api/endpoints';
+import { fetchCategoriesFilter, getCoverUrl as getCover } from '../api/endpoints';
 import type { ComicItem } from '../api/types';
 
 const SORTS = [
@@ -41,12 +41,12 @@ export function CategoriesScreen() {
 
   const load = useCallback(async (p: number, refresh = false) => {
     try {
-      const data = await fetchMoreList(slug, p);
+      const data = await fetchCategoriesFilter({ c: slug, page: p, o: sort });
       if (refresh || p === 1) setList(data.list || []);
       else setList((prev) => [...prev, ...(data.list || [])]);
       setHasMore((data.list || []).length >= 30);
     } catch {}
-  }, [slug]);
+  }, [slug, sort]);
 
   useEffect(() => {
     setLoading(true);
@@ -115,9 +115,6 @@ export function CategoriesScreen() {
     </SafeAreaView>
   );
 }
-
-// Need ScrollView import
-import { ScrollView } from 'react-native';
 
 const styles = StyleSheet.create({
   cont: { flex: 1, backgroundColor: Colors.background },
