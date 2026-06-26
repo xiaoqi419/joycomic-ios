@@ -6,6 +6,7 @@
     "@expo/metro-runtime": "^56.0.15",
     "@expo/vector-icons": "^15.1.1",
     "@google/stitch-sdk": "^0.3.5",
+    "@napi-rs/canvas": "^1.0.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.2.0",

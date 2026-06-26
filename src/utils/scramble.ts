@@ -1,4 +1,4 @@
-// 图片 Scramble 解码 — 从 APK 二进制代码完整还原
+// 图片 Scramble 解码
 // @author nyx
 
 export function calcGridSize(scrambleId: number, albumId: string): number {
@@ -14,10 +14,7 @@ export function calcGridSize(scrambleId: number, albumId: string): number {
   let r = hex.charCodeAt(hex.length - 1);
   if (scrambleId >= 268850 && scrambleId <= 421925) r %= 10;
   else if (scrambleId >= 421926) r %= 8;
-  const gridMap: Record<number, number> = {
-    0: 2, 1: 4, 2: 6, 3: 8, 4: 10,
-    5: 12, 6: 14, 7: 16, 8: 18, 9: 20,
-  };
+  const gridMap: Record<number, number> = { 0: 2, 1: 4, 2: 6, 3: 8, 4: 10, 5: 12, 6: 14, 7: 16, 8: 18, 9: 20 };
   return gridMap[r] || 10;
 }
 
@@ -31,12 +28,9 @@ function proxyImgUrl(url: string): string {
   return m ? `http://localhost:3456/${m[1]}${m[2]}` : url;
 }
 
-/**
- * 构建章节图片 URL 列表
- * page_arr API 格式: [[pageNum, width, height], ...]
- * images API 格式: 可能是 ["00001.webp", ...] 或 [[pageNum, w, h], ...]
- * 安全的做法: 只用 pageCount 决定数量，扩展名用 .webp
- */
+let _imgHost = 'cdn-msp.18comic.vip';
+export function setImageHost(h: string) { _imgHost = h; }
+
 export function buildChapterImageUrls(
   host: string,
   chapterId: string,
@@ -44,15 +38,19 @@ export function buildChapterImageUrls(
   scrambleId: number,
   images?: { page: number; image: string }[],
 ): string[] {
-  // API 返回 images = [{page:1, image:"完整URL"}], 优先用 image 字段
+  // API 返回 images = [{page, image:"完整URL"}]
   if (images?.length) {
-    return images.map((item) => proxyImgUrl(item.image + (needsScramble(scrambleId) ? `?scramble=${scrambleId}` : '')));
+    return images.map((item) => {
+      let url = item.image;
+      url += `?sc=${scrambleId}&aid=${chapterId}`;
+      return proxyImgUrl(url);
+    });
   }
-  // fallback
+  // fallback: 生成 webp 文件名
   const urls: string[] = [];
   for (let i = 1; i <= pageCount; i++) {
     let url = `https://${host}/media/photos/${chapterId}/${String(i).padStart(5, '0')}.webp`;
-    if (needsScramble(scrambleId)) url += `?scramble=${scrambleId}`;
+    url += `?sc=${scrambleId}&aid=${chapterId}`;
     urls.push(proxyImgUrl(url));
   }
   return urls;
