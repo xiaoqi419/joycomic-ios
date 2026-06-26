@@ -27,7 +27,7 @@ function calcGridSize(scrambleId, albumId) {
 }
 
 async function descrambleImage(imageBuffer, scrambleId, albumId) {
-  if (scrambleId === 0 || scrambleId === 220980) return imageBuffer;
+  // 始终解码（CDN 对所有图片都做了 scramble）
 
   try {
     const img = await loadImage(imageBuffer);
@@ -99,7 +99,7 @@ http.createServer(async (req, res) => {
     let respBody = Buffer.from(await resp.arrayBuffer());
 
     // Descramble if image with scramble params
-    if (isImage && sc !== 0 && sc !== 220980) {
+    if (isImage) {
       console.log(`[descramble] ${restPath} sc=${sc} aid=${aid}`);
       respBody = await descrambleImage(respBody, sc, aid);
     }
