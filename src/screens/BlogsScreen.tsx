@@ -24,7 +24,7 @@ export function BlogsScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: Colors.background }}>
       <FlatList
         data={list}
         keyExtractor={(i) => i.id}
@@ -63,11 +63,11 @@ export function BlogDetailScreen() {
     }).finally(() => setLoading(false));
   }, [blogId]);
 
-  if (loading) return <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background, justifyContent: 'center' }}><ActivityIndicator color={Colors.primary} /></SafeAreaView>;
+  if (loading) return <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: Colors.background, justifyContent: 'center' }}><ActivityIndicator color={Colors.primary} /></SafeAreaView>;
   if (!blog) return null;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: Colors.background }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 60 }}>
         <Image source={{ uri: blog.photo }} style={{ width: '100%', height: 220 }} contentFit="cover" />
         <View style={{ padding: Spacing.marginEdge }}>

@@ -90,7 +90,7 @@ export function MemberScreen() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: Colors.background }}>
       <ScrollView contentContainerStyle={{ padding: Spacing.marginEdge, paddingBottom: 100 }}>
         <Text style={{ fontSize: FontSize.largeTitle, fontWeight: '800', color: Colors.textPrimary, marginBottom: Spacing.lg }}>
           {loggedIn ? t('member.welcome') : t('member.login')}

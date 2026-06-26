@@ -23,7 +23,7 @@ export function NovelsScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: Colors.background }}>
       <FlatList
         data={list}
         keyExtractor={(i) => i.id}
@@ -61,11 +61,11 @@ export function NovelDetailScreen() {
     }).finally(() => setLoading(false));
   }, [novelId]);
 
-  if (loading) return <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background, justifyContent: 'center' }}><ActivityIndicator color={Colors.primary} /></SafeAreaView>;
+  if (loading) return <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: Colors.background, justifyContent: 'center' }}><ActivityIndicator color={Colors.primary} /></SafeAreaView>;
   if (!novel) return null;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: Colors.background }}>
       <ScrollView contentContainerStyle={{ padding: Spacing.marginEdge }}>
         <View style={{ flexDirection: 'row', gap: 12 }}>
           <Image source={{ uri: novel.photo }} style={{ width: 100, height: 140, borderRadius: Radius.sm, backgroundColor: Colors.surfaceContainer }} contentFit="cover" />
@@ -99,11 +99,11 @@ export function NovelReaderScreen() {
     fetchNovelContent(chapterId).then(setContent).finally(() => setLoading(false));
   }, [chapterId]);
 
-  if (loading) return <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background, justifyContent: 'center' }}><ActivityIndicator color={Colors.primary} /></SafeAreaView>;
+  if (loading) return <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: Colors.background, justifyContent: 'center' }}><ActivityIndicator color={Colors.primary} /></SafeAreaView>;
   if (!content) return null;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: Colors.background }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, backgroundColor: Colors.surface }}>
         <Pressable onPress={() => nav.goBack()}><MaterialIcons name="arrow-back" size={24} color={Colors.textPrimary} /></Pressable>
         <Text style={{ color: Colors.textPrimary, fontSize: 17, fontWeight: '600', marginLeft: 12, flex: 1 }} numberOfLines={1}>{content.title}</Text>

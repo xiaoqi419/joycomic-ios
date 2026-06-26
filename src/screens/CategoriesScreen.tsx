@@ -69,7 +69,7 @@ export function CategoriesScreen() {
   const getCoverUrl = (id: string) => getCover(id);
 
   return (
-    <SafeAreaView style={styles.cont}>
+    <SafeAreaView edges={["top"]} style={styles.cont}>
       <FlatList
         data={list}
         numColumns={3}

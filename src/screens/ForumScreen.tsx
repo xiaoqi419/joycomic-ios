@@ -23,7 +23,7 @@ export function ForumScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: Colors.background }}>
       <FlatList
         data={posts}
         keyExtractor={(i) => i.id}

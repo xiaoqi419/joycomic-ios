@@ -92,7 +92,7 @@ export function SearchScreen() {
   const getCoverUrl = (id: string) => getCover(id);
 
   return (
-    <SafeAreaView style={styles.cont}>
+    <SafeAreaView edges={["top"]} style={styles.cont}>
       <StatusBar style="light" />
       <FlatList
         data={results}

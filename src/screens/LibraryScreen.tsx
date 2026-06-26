@@ -38,7 +38,7 @@ export function LibraryScreen() {
   const items = loggedIn && online.length > 0 ? online : local;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: Colors.background }}>
       <FlatList
         data={items}
         keyExtractor={(i) => i.id}

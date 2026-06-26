@@ -40,7 +40,7 @@ export function GamesScreen() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: Colors.background }}>
       <FlatList
         data={games}
         numColumns={2}

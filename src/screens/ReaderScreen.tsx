@@ -145,7 +145,7 @@ export function ReaderScreen() {
 
       {/* 顶部栏 */}
       {showUI && (
-        <SafeAreaView style={styles.topBar}>
+        <SafeAreaView edges={["top"]} style={styles.topBar}>
           <TouchableOpacity onPress={() => nav.goBack()} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <MaterialIcons name="arrow-back" size={22} color="#fff" />
             <Text style={styles.topText}>{t('common.back')}</Text>
@@ -192,7 +192,7 @@ export function ReaderScreen() {
 
       {/* 底部进度条 */}
       {showUI && (
-        <SafeAreaView style={styles.bottomBar}>
+        <SafeAreaView edges={["top"]} style={styles.bottomBar}>
           {/* 进度滑块 */}
           <View style={styles.sliderContainer}>
             <Text style={styles.progressLabel}>1</Text>

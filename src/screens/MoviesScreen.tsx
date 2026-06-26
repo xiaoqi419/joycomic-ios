@@ -25,7 +25,7 @@ export function MoviesScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: Colors.background }}>
       <FlatList
         data={movies}
         numColumns={2}
@@ -62,11 +62,11 @@ export function MoviePlayerScreen() {
     fetchVideoDetail(vid).then((d) => setVideo(d.video)).catch(() => {}).finally(() => setLoading(false));
   }, [vid]);
 
-  if (loading) return <SafeAreaView style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator color={Colors.primary} /></SafeAreaView>;
-  if (!video) return <SafeAreaView style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}><Text style={{ color: '#fff' }}>{t('common.error')}</Text></SafeAreaView>;
+  if (loading) return <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator color={Colors.primary} /></SafeAreaView>;
+  if (!video) return <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}><Text style={{ color: '#fff' }}>{t('common.error')}</Text></SafeAreaView>;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: '#000' }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, backgroundColor: '#111' }}>
         <Pressable onPress={() => nav.goBack()}><MaterialIcons name="arrow-back" size={24} color="#fff" /></Pressable>
         <Text style={{ color: '#fff', fontSize: 17, fontWeight: '600', marginLeft: 12 }} numberOfLines={1}>{video.title}</Text>
