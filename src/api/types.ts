@@ -134,8 +134,8 @@ export interface ComicReadData {
   id: string;
   album_id: string;
   name: string;
-  images: string[];
-  /** 总页数（含插页广告，原版用 images.length + 3） */
+  /** API 返回 [{page, image}, ...] */
+  images: { page: number; image: string }[];
   total_page?: number;
   page_arr: number[][];
   data_original_domain: string;
