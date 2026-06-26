@@ -36,6 +36,13 @@ export function extractFilename(url: string): string {
   return m ? m[1] : '00001.webp';
 }
 
+function proxyImg(u: string): string {
+  if (typeof navigator !== 'undefined' && navigator.product !== 'ReactNative' && typeof window !== 'undefined') {
+    return 'http://localhost:8765/?url=' + encodeURIComponent(u);
+  }
+  return u;
+}
+
 export function buildChapterImageUrls(
   host: string,
   chapterId: string,
@@ -47,14 +54,14 @@ export function buildChapterImageUrls(
   if (images?.length) {
     return images.map((item) => {
       const fn = extractFilename(item.image);
-      return item.image + "?sc=" + scrambleId + "&aid=" + aid + "&fn=" + fn;
+      return proxyImg(item.image + "?sc=" + scrambleId + "&aid=" + aid + "&fn=" + fn);
     });
   }
   const urls: string[] = [];
   for (let i = 1; i <= pageCount; i++) {
     const fn = String(i).padStart(5, "0") + ".webp";
     const url = "https://" + host + "/media/photos/" + chapterId + "/" + fn;
-    urls.push(url + "?sc=" + scrambleId + "&aid=" + aid + "&fn=" + fn);
+    urls.push(proxyImg(url + "?sc=" + scrambleId + "&aid=" + aid + "&fn=" + fn));
   }
   return urls;
 }
