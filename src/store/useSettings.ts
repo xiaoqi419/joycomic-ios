@@ -71,8 +71,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       img_host: data.img_host,
     }));
 
-    // 更新 API client（只更新 imgHost 不更新 mainHost，避免切换到被封锁的 18comic.vip）
-    apiClient.setImgHost(data.img_host || '');
+    // 不更新 apiClient 的域名（CDN 域名用硬编码兜底，setting 的域名可能不可用）
 
     // 如果有被选中 shunt，使用它的域名
     const { selectedShuntKey } = get();
