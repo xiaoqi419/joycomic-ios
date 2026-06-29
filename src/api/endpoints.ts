@@ -1,7 +1,7 @@
 // 禁漫天堂 API 封装 — 路径从 APK JS bundle 精确提取
 // @author nyx
 
-import { apiClient, setGlobalAvs } from './client';
+import { apiClient } from './client';
 import { decryptAndParse, nowTs, generateToken } from './crypto';
 import type {
   ApiResponse, SettingData, PromoteItem, LatestItem,
@@ -79,7 +79,12 @@ export async function fetchAlbumDetail(albumId: string): Promise<AlbumDetail> {
 }
 
 export async function fetchComicRead(chapterId: string): Promise<ComicReadData> {
-  return encryptedGet<ComicReadData>('comic_read', { id: chapterId });
+  try {
+    return await encryptedGet<ComicReadData>('comic_read', { id: chapterId });
+  } catch {
+    // 降级: 尝试 PicaComic 的 /chapter 路径
+    return encryptedGet<ComicReadData>('chapter', { id: chapterId });
+  }
 }
 
 export async function fetchScrambleId(photoId: string | number): Promise<number> {
@@ -123,7 +128,7 @@ export async function createFolder(name: string): Promise<any> {
 
 export async function login(username: string, password: string): Promise<LoginData> {
   const data = await encryptedPost<LoginData>('login', { username, password });
-  if (data.s) { apiClient.setAvs(data.s); setGlobalAvs(data.s); }
+  if (data.s) { apiClient.setAvs(data.s); }
   return data;
 }
 

@@ -5,9 +5,8 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, useWindowDimensions, StatusBar,
-  ScrollView, Pressable, ActivityIndicator, Modal, Alert,
+  ScrollView, Pressable, ActivityIndicator, Modal, Alert, StyleSheet,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { ScrambledImage } from '../components/ScrambledImage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -16,8 +15,8 @@ import { useTranslation } from 'react-i18next';
 import { useReaderStore } from '../store/useReader';
 import { useSettingsStore } from '../store/useSettings';
 import { useHistoryStore } from '../store/useHistory';
-import { fetchComicRead, fetchAlbumDetail } from '../api/endpoints';
-import { buildChapterImageUrls } from '../utils/scramble';
+import { fetchComicRead, fetchAlbumDetail, getImgHost, fetchScrambleId } from '../api/endpoints';
+import { extractFilename, extractFilenameWithoutExt } from '../utils/scramble';
 import { Colors, FontSize, Radius, Spacing } from '../theme';
 import type { Episode } from '../api/types';
 
@@ -52,13 +51,22 @@ export function ReaderScreen() {
     setLoading(true);
     try {
       const data = await fetchComicRead(chId);
-      const images = buildChapterImageUrls(
-        getImgHost(), chId,
-        data.page_count || data.images?.length || 20,
-        data.scramble_id,
-        data.images as any,
-      );
-      startReading(albumId || data.album_id, chId, chName, images, data.scramble_id);
+      // 构建图片 URL 列表
+      const host = getImgHost();
+      let images: string[];
+      if (data.images?.length) {
+        images = data.images.map((item) => item.image);
+      } else {
+        const count = data.page_count || 20;
+        images = [];
+        for (let i = 1; i <= count; i++) {
+          const fn = String(i).padStart(5, '0') + '.webp';
+          images.push(`https://${host}/media/photos/${chId}/${fn}`);
+        }
+      }
+      let sid = data.scramble_id;
+      if (!sid) { try { sid = await fetchScrambleId(chId); } catch {} }
+      startReading(albumId || data.album_id, chId, chName, images, sid || 220980);
       useHistoryStore.getState().add({
         id: albumId || data.album_id,
         title: chapterTitle || chName,
@@ -111,14 +119,20 @@ export function ReaderScreen() {
           style={{ flex: 1 }}
         >
           <TouchableOpacity activeOpacity={1} onPress={toggleUI} style={{ minHeight: H + 1 }}>
-            {imageUrls.map((url, i) => (
-              <ScrambledImage
-                key={i}
-                imageUrl={url}
-                scrambleId={useReaderStore.getState().scrambleId}
-                style={{ width: W, height: H }}
-              />
-            ))}
+            {imageUrls.map((url, i) => {
+              const store = useReaderStore.getState();
+              const picName = extractFilename(url);
+              return (
+                <ScrambledImage
+                  key={i}
+                  imageUrl={url}
+                  epsId={store.chapterId || chapterId}
+                  scrambleId={store.scrambleId}
+                  pictureName={picName}
+                  style={{ width: W, height: H }}
+                />
+              );
+            })}
           </TouchableOpacity>
         </ScrollView>
       ) : (
@@ -135,11 +149,21 @@ export function ReaderScreen() {
             const page = Math.round(e.nativeEvent.contentOffset.x / W);
             setPage(page);
           }}
-          renderItem={({ item }) => (
-            <TouchableOpacity activeOpacity={1} onPress={toggleUI} style={{ width: W, height: H }}>
-              <Image source={{ uri: item }} style={{ flex: 1, width: '100%', height: '100%' }} contentFit="contain" transition={200} />
-            </TouchableOpacity>
-          )}
+          renderItem={({ item, index }) => {
+            const store = useReaderStore.getState();
+            const picName = extractFilename(item);
+            return (
+              <TouchableOpacity activeOpacity={1} onPress={toggleUI} style={{ width: W, height: H }}>
+                <ScrambledImage
+                  imageUrl={item}
+                  epsId={store.chapterId || chapterId}
+                  scrambleId={store.scrambleId}
+                  pictureName={picName}
+                  style={{ width: W, height: H }}
+                />
+              </TouchableOpacity>
+            );
+          }}
         />
       )}
 
@@ -256,34 +280,34 @@ export function ReaderScreen() {
   );
 }
 
-const styles = {
+const styles = StyleSheet.create({
   topBar: {
-    position: 'absolute' as const,
+    position: 'absolute',
     top: 0, left: 0, right: 0, zIndex: 100,
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
-    alignItems: 'center' as const,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 14, paddingTop: 8, paddingBottom: 4,
     backgroundColor: 'rgba(0,0,0,0.6)',
   },
   topText: { color: '#fff', fontSize: 15, fontWeight: '600' },
   bottomBar: {
-    position: 'absolute' as const,
+    position: 'absolute',
     bottom: 0, left: 0, right: 0, zIndex: 100,
     paddingHorizontal: 14, paddingBottom: 24, paddingTop: 8,
     backgroundColor: 'rgba(0,0,0,0.6)',
   },
   sliderContainer: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
-  progressLabel: { color: '#aaa', fontSize: 11, width: 30, textAlign: 'center' as const },
+  progressLabel: { color: '#aaa', fontSize: 11, width: 30, textAlign: 'center' },
   sliderTrack: {
     flex: 1,
     height: 32,
-    justifyContent: 'center' as const,
-    position: 'relative' as const,
+    justifyContent: 'center',
+    position: 'relative',
   },
   sliderFill: {
     height: 4,
@@ -291,7 +315,7 @@ const styles = {
     borderRadius: 2,
   },
   sliderThumb: {
-    position: 'absolute' as const,
+    position: 'absolute',
     width: 16,
     height: 16,
     borderRadius: 8,
@@ -302,28 +326,28 @@ const styles = {
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end' as const,
+    justifyContent: 'flex-end',
   },
   modalContent: {
     backgroundColor: Colors.surface,
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
-    maxHeight: '70%' as const,
+    maxHeight: '70%',
     paddingBottom: 40,
   },
   modalHeader: {
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
-    alignItems: 'center' as const,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: Spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: Colors.divider,
   },
   modalTitle: { fontSize: FontSize.headline, fontWeight: '700', color: Colors.textPrimary },
   chapterItem: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'space-between' as const,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingVertical: 12,
     paddingHorizontal: Spacing.md,
     borderBottomWidth: 0.5,
@@ -332,4 +356,4 @@ const styles = {
   chapterItemActive: { backgroundColor: Colors.primary + '15' },
   chapterItemText: { fontSize: FontSize.body, color: Colors.textSecondary },
   chapterItemTextActive: { color: Colors.primary, fontWeight: '600' },
-};
+});

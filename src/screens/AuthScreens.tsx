@@ -28,7 +28,7 @@ export function RegisterScreen() {
         username: username.trim(), password: password.trim(),
         password_confirm: confirm.trim(), email: email.trim(),
         gender: '', adult: true, PrivacyPolicy: true,
-      });
+      } as any);
       Alert.alert('注册成功', '请返回登录', [{ text: '确定', onPress: () => nav.goBack() }]);
     } catch (e: any) { Alert.alert('注册失败', e.message); }
     setLoading(false);

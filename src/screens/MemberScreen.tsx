@@ -108,7 +108,7 @@ export function MemberScreen() {
                 <View style={{ flexDirection: 'row', gap: 16, marginTop: 4 }}>
                   <Text style={{ color: Colors.textSecondary }}>🪙 {info?.coin || '-'}</Text>
                   <Text style={{ color: Colors.textSecondary }}>⭐ {info?.level || '-'}</Text>
-                  <Text style={{ color: Colors.textSecondary }}>📊 {info?.exp || '-'}</Text>
+                  <Text style={{ color: Colors.textSecondary }}>📊 {info?.experience || '-'}</Text>
                 </View>
               </View>
             </View>

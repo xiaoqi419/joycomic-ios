@@ -14,12 +14,11 @@ import { Image } from 'expo-image';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Colors, Radius, Spacing, FontSize } from '../theme';
-import { fetchAlbumDetail, fetchComicRead, fetchComments, postComment, buyAlbum, getCoverUrl, getImgHost } from '../api/endpoints';
+import { fetchAlbumDetail, fetchComicRead, fetchComments, postComment, buyAlbum, getCoverUrl, getImgHost, fetchScrambleId } from '../api/endpoints';
 import { useFavoritesStore } from '../store/useFavorites';
 import { useReaderStore } from '../store/useReader';
 import { useHistoryStore } from '../store/useHistory';
 import { useAuthStore } from '../store/useAuth';
-import { buildChapterImageUrls } from '../utils/scramble';
 import { chunkArray } from '../utils/helpers';
 import type { AlbumDetail, Episode, CommentItem as ApiComment } from '../api/types';
 
@@ -51,7 +50,7 @@ export function ComicDetailScreen() {
     // 异步加载上次阅读位置
     try {
       const { default: AsyncStorage } = require('@react-native-async-storage/async-storage');
-      AsyncStorage.getItem(`@jmcomic.readEp.${albumId}`).then((json) => {
+      AsyncStorage.getItem(`@jmcomic.readEp.${albumId}`).then((json: string | null) => {
         if (json) setReadEp(JSON.parse(json));
       });
     } catch {}
@@ -83,9 +82,21 @@ export function ComicDetailScreen() {
     try {
       const data = await fetchComicRead(chId);
       const host = getImgHost();
-      const images = buildChapterImageUrls(host, chId, data.page_count || data.images?.length || 20, data.scramble_id, data.images as any);
+      let images: string[];
+      if (data.images?.length) {
+        images = data.images.map((item) => item.image);
+      } else {
+        const count = data.page_count || 20;
+        images = [];
+        for (let i = 1; i <= count; i++) {
+          const fn = String(i).padStart(5, '0') + '.webp';
+          images.push(`https://${host}/media/photos/${chId}/${fn}`);
+        }
+      }
 
-      useReaderStore.getState().startReading(albumId, chId, chName, images, data.scramble_id);
+      let sid = data.scramble_id;
+      if (!sid) { try { sid = await fetchScrambleId(chId); } catch {} }
+      useReaderStore.getState().startReading(albumId, chId, chName, images, sid || 220980);
       useHistoryStore.getState().add({
         id: albumId, title: detail?.name || '', coverUrl: getCoverUrl(albumId),
         chapterId: chId, chapterTitle: chName, page: 0, readAt: Date.now(),
@@ -159,7 +170,7 @@ export function ComicDetailScreen() {
     setShowShare(false);
   };
 
-  const fmt = (n: number) => n >= 10000 ? (n / 10000).toFixed(1) + '万' : String(n || 0);
+  const fmt = (n: number | string) => { const v = Number(n); return v >= 10000 ? (v / 10000).toFixed(1) + '万' : String(v || 0); };
 
   if (loading) {
     return (
@@ -209,7 +220,7 @@ export function ComicDetailScreen() {
 
         {/* 3-Tab 导航 */}
         <View style={styles.tabBar}>
-          {t('detail.menu_items', { returnObjects: true }).map((label: string, i: number) => (
+          {(t('detail.menu_items', { returnObjects: true }) as string[]).map((label: string, i: number) => (
             <Pressable key={i} onPress={() => setTab(i + 1)} style={[styles.tab, tab === i + 1 && styles.tabActive]}>
               <Text style={[styles.tabText, tab === i + 1 && styles.tabTextActive]}>{label}</Text>
             </Pressable>

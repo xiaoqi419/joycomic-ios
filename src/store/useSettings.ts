@@ -16,7 +16,7 @@ interface Shunt {
 interface SettingsState {
   language: 'zh' | 'en';
   darkMode: boolean;
-  readingMode: 'page' | 'page';
+  readingMode: 'page' | 'scroll';
   readingDirection: 'ltr' | 'rtl';
   loaded: boolean;
 

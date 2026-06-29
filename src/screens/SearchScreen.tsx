@@ -69,8 +69,8 @@ export function SearchScreen() {
         category: c.category, category_sub: c.category_sub,
         update_at: c.update_at, liked: c.liked, is_favorite: c.is_favorite,
       }));
-      if (refresh || p === 1) setResults(items);
-      else setResults((prev) => [...prev, ...items]);
+      if (refresh || p === 1) setResults(items as ComicItem[]);
+      else setResults((prev) => [...prev, ...items as ComicItem[]]);
       setTotal(parseInt(String(String(data.total))) || items.length);
       setHasMore(items.length >= 80);
       setSearched(true);

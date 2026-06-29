@@ -1,60 +1,167 @@
-// 图片 Scramble 解码 — 从 jmcomic 官方 Python 库提取的精确算法
-// 网格数 = MD5(aid + 文件名) → 末位 charCode % x → * 2 + 2
+// 图片 Scramble 解码 — 精确算法 (从 PicaComic / JMComic-qt 移植)
+// 网格数 = MD5(epsId + 文件名) → 末位 charCode % N → * 2 + 2
+// 图片重组 = 将水平条带逆序重排 (最后一块放到最上面)
 // @author nyx
 
-/** 计算网格数 (原版 APK 算法) */
-export function calcGridSize(aid: string, filename: string, scrambleId: number): number {
-  // MD5(aid + scrambleId) → switch → gridSize
-  const s = String(scrambleId) + String(aid);
-  const hash = md5Simple(s);
-  let r = hash.charCodeAt(hash.length - 1);
-  
-  if (scrambleId >= 268850 && scrambleId <= 421925) {
-    r %= 10;
-  } else if (scrambleId >= 421926) {
-    r %= 8;
+import CryptoJS from 'crypto-js';
+
+/**
+ * 计算分段数 (即百叶窗的叶片数)
+ * 从 PicaComic lib/foundation/image_loader/image_recombine.dart 移植
+ *
+ * @param epsId      章节 ID (albumId 或 chapterId)
+ * @param scrambleId 从 API 获取的 scramble_id，回退值 220980
+ * @param pictureName 文件名，如 "00001.webp"
+ */
+export function getSegmentationNum(
+  epsId: string,
+  scrambleId: string,
+  pictureName: string,
+): number {
+  const epsID = parseInt(epsId, 10);
+  const scrambleID = parseInt(scrambleId, 10);
+  let num = 0;
+
+  if (epsID < scrambleID) {
+    // 早期章节无保护
+    num = 0;
+  } else if (epsID < 268850) {
+    // 固定 10 段 (旧保护方式)
+    num = 10;
+  } else if (epsID > 421926) {
+    // MD5(epsId + pictureName) → 末位 charCode % 8 → * 2 + 2
+    const hash = CryptoJS.MD5(epsId + pictureName).toString(CryptoJS.enc.Hex);
+    const charCode = hash.charCodeAt(hash.length - 1);
+    const remainder = charCode % 8;
+    num = remainder * 2 + 2; // 结果: 2,4,6,8,10,12,14,16
+  } else {
+    // 268850 <= epsID <= 421926
+    // MD5(epsId + pictureName) → 末位 charCode % 10 → * 2 + 2
+    const hash = CryptoJS.MD5(epsId + pictureName).toString(CryptoJS.enc.Hex);
+    const charCode = hash.charCodeAt(hash.length - 1);
+    const remainder = charCode % 10;
+    num = remainder * 2 + 2; // 结果: 2,4,6,8,10,12,14,16,18,20
   }
-  
-  const gridMap: Record<number, number> = {0:2,1:4,2:6,3:8,4:10,5:12,6:14,7:16,8:18,9:20};
-  return gridMap[r] || 10;
+  return num;
 }
 
-/** 简易 MD5 哈希 */
-function md5Simple(str: string): string {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash |= 0;
-  }
-  return Math.abs(hash).toString(16).padStart(8, '0');
-}
-
-/** 从 URL 中提取文件名 (如 00001.webp) */
+/**
+ * 从 URL 中提取文件名 (如 "00001.webp")
+ */
 export function extractFilename(url: string): string {
-  const m = url.match(/\/(\d+\.\w+)(?:\?|$)/);
+  // 去掉 query string
+  const path = url.split('?')[0];
+  const m = path.match(/\/(\d+\.\w+)$/);
   return m ? m[1] : '00001.webp';
 }
 
-export function buildChapterImageUrls(
-  host: string,
-  chapterId: string,
-  pageCount: number,
-  scrambleId: number,
-  images?: { page: number; image: string }[],
-): string[] {
-  const aid = chapterId;
-  if (images?.length) {
-    return images.map((item) => {
-      const fn = extractFilename(item.image);
-      return (item.image + "?sc=" + scrambleId + "&aid=" + aid + "&fn=" + fn);
-    });
+/**
+ * 提取文件名去掉扩展名 (如 "00001")
+ */
+export function extractFilenameWithoutExt(url: string): string {
+  const fn = extractFilename(url);
+  return fn.replace(/\.\w+$/, '');
+}
+
+/**
+ * 生成用于 WebView Canvas 解扰的 HTML
+ *
+ * 该 HTML 会:
+ * 1. 加载原始图片 (crossOrigin="anonymous")
+ * 2. 计算分段数
+ * 3. 将图片切成水平条带并按逆序重排
+ * 4. 渲染到 Canvas 上
+ */
+export function buildDescrambleHtml(
+  imageUrl: string,
+  epsId: string,
+  scrambleId: string,
+  pictureName: string,
+): string {
+  const num = getSegmentationNum(epsId, scrambleId, pictureName);
+
+  // 不需要解扰 — 直接显示原图
+  if (num <= 1) {
+    return buildSimpleImageHtml(imageUrl, false);
   }
-  const urls: string[] = [];
-  for (let i = 1; i <= pageCount; i++) {
-    const fn = String(i).padStart(5, "0") + ".webp";
-    const url = "https://" + host + "/media/photos/" + chapterId + "/" + fn;
-    urls.push(proxyImg(url + "?sc=" + scrambleId + "&aid=" + aid + "&fn=" + fn));
-  }
-  return urls;
+
+  const safeUrl = imageUrl.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;background:#000;overflow:hidden}
+canvas{display:block;width:100vw;height:100vh;object-fit:contain}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+(function(){
+  var img = new Image();
+  img.crossOrigin = "anonymous";
+  img.onload = function(){
+    var num = ${num};
+    var c = document.getElementById('c');
+    c.width = img.naturalWidth;
+    c.height = img.naturalHeight;
+    var ctx = c.getContext('2d');
+
+    // 计算每块高度
+    var blockSize = Math.floor(img.naturalHeight / num);
+    var remainder = img.naturalHeight % num;
+
+    // 分配块: [{start, end}, ...]
+    var blocks = [];
+    for (var i = 0; i < num; i++) {
+      var start = i * blockSize;
+      var end = start + blockSize + (i === num - 1 ? remainder : 0);
+      blocks.push({ start: start, end: end });
+    }
+
+    // 逆序重排: 从最后一块开始绘制到 Canvas 顶部
+    var y = 0;
+    for (var i = blocks.length - 1; i >= 0; i--) {
+      var block = blocks[i];
+      var h = block.end - block.start;
+      ctx.drawImage(img, 0, block.start, img.naturalWidth, h, 0, y, img.naturalWidth, h);
+      y += h;
+    }
+  };
+  img.onerror = function(){
+    // 加载失败时直接显示原图
+    document.body.innerHTML = '<img src="' + '${safeUrl}' + '" style="max-width:100%;max-height:100vh;object-fit:contain">';
+  };
+  img.src = '${safeUrl}';
+})();
+</script>
+</body>
+</html>`;
+}
+
+/**
+ * 简单的图片展示 HTML (无解扰)
+ */
+export function buildSimpleImageHtml(imageUrl: string, darkBg = true): string {
+  const bg = darkBg ? '#000' : '#fff';
+  const safeUrl = imageUrl.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;background:${bg};overflow:hidden}
+img{display:block;width:100vw;height:100vh;object-fit:contain}
+</style>
+</head>
+<body>
+<img src="${safeUrl}" alt="">
+</body>
+</html>`;
 }

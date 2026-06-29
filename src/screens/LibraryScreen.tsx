@@ -35,7 +35,7 @@ export function LibraryScreen() {
     } else setLoading(false);
   }, [loggedIn]);
 
-  const items = loggedIn && online.length > 0 ? online : local;
+  const items: any[] = loggedIn && online.length > 0 ? online : local;
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: Colors.background }}>
