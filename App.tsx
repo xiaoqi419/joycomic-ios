@@ -120,6 +120,9 @@ export default function App() {
       const saved = await loadSelectedShunt();
       setSavedShunt(saved);
 
+      // 清理过期图片缓存
+      try { const { cleanImageCache } = await import('./src/utils/ImageCache'); cleanImageCache(); } catch {}
+
       // 从 API 获取动态域名配置
       try {
         const setting = await fetchSetting();

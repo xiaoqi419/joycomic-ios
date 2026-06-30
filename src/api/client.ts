@@ -28,27 +28,50 @@ const FALLBACK_DOMAINS = [
 export class ApiClient {
   private domainIdx = 0;
   private avsToken = '';
-  private domains: string[] = [...FALLBACK_DOMAINS];
-  /** 从 /api/setting 获取的主域名 */
-  private mainHost = '';
-  /** 从 /api/setting 获取的图片 CDN */
-  private imgHost = 'cdn-msp.18comic.vip';
+  private _domains: string[] = [...FALLBACK_DOMAINS];
+  private _mainHost = '';
+  private _imgHost = 'cdn-msp.18comic.vip';
+  /** 用户源选择器选中的域名，优先使用 */
+  private _preferredDomain = '';
 
-  getDomains() { return this.domains; }
-  setDomains(d: string[]) { this.domains = d.length > 0 ? d : [...FALLBACK_DOMAINS]; }
+  getDomains() { return this._domains; }
+  setDomains(d: string[]) {
+    this._domains = d.length > 0 ? d : [...FALLBACK_DOMAINS];
+    this.applyPreferredDomain();
+  }
 
-  getMainHost() { return this.mainHost; }
-  setMainHost(h: string) { this.mainHost = h; }
+  getMainHost() { return this._mainHost; }
+  setMainHost(h: string) {
+    this._mainHost = h;
+    this.applyPreferredDomain();
+  }
 
-  getImgHost() { return this.imgHost; }
-  setImgHost(h: string) { this.imgHost = h || 'cdn-msp.18comic.vip'; }
+  getImgHost() { return this._imgHost; }
+  setImgHost(h: string) { this._imgHost = h || 'cdn-msp.18comic.vip'; }
+
+  /** 设置用户选中的源域名 */
+  setPreferredDomain(domain: string) {
+    this._preferredDomain = domain;
+    this.applyPreferredDomain();
+  }
+
+  /** 将首选域名移到最前面 */
+  private applyPreferredDomain() {
+    if (!this._preferredDomain) return;
+    const source = this._mainHost || this._domains;
+    if (typeof source === 'string') {
+      // mainHost 模式下 already handled
+    } else {
+      this._domains = [this._preferredDomain, ...this._domains.filter(d => d !== this._preferredDomain)];
+    }
+  }
 
   setAvs(token: string) { this.avsToken = token; }
   getAvs() { return this.avsToken; }
 
   private switchDomain() {
     this.domainIdx++;
-    return this.domainIdx < this.domains.length;
+    return this.domainIdx < this._domains.length;
   }
   resetDomain() { this.domainIdx = 0; }
 
@@ -56,8 +79,11 @@ export class ApiClient {
     const h: Record<string, string> = { ...BROWSER_HEADERS };
     if (isMobile) {
       const { token, tokenparam } = generateToken(ts);
+      // APK 用大写 Token，PicaComic 用小写 token — 双发确保兼容
       h['Token'] = token;
+      h['token'] = token;
       h['Tokenparam'] = tokenparam;
+      h['tokenparam'] = tokenparam;
     }
     if (this.avsToken) {
       h['Cookie'] = `AVS=${this.avsToken}`;
@@ -74,13 +100,10 @@ export class ApiClient {
     const ts = nowTs();
     const method = config.method || 'GET';
     const isMobile = config.isMobile !== false;
-    const headers = this.buildHeaders(ts, isMobile);
 
-    // 优先用 mainHost（从 /api/setting 获取），否则用 fallback 域名轮询
-    const domain = this.mainHost || this.domains[this.domainIdx % this.domains.length];
-    // 路径以 / 开头则直接拼接，否则加 /
+    // 域名优先级: 用户首选 > mainHost > fallback 轮询
+    const domain = this._preferredDomain || this._mainHost || this._domains[this.domainIdx % this._domains.length];
     const sep = path.startsWith('/') ? '' : '/';
-    // CDN 支持 CORS（Access-Control-Allow-Origin: *），直接请求
     let url = `https://${domain}${sep}${path}`;
     if (config.query) {
       const p = new URLSearchParams();
@@ -88,8 +111,9 @@ export class ApiClient {
       url += '?' + p.toString();
     }
 
+    const headers = this.buildHeaders(ts, isMobile);
     const ctrl = new AbortController();
-    const tid = setTimeout(() => ctrl.abort(), 15000);
+    const tid = setTimeout(() => ctrl.abort(), 8000);
     try {
       const opt: RequestInit = { method, headers, signal: ctrl.signal };
       if (config.form && method === 'POST') {

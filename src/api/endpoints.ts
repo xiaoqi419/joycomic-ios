@@ -5,6 +5,7 @@ import CryptoJS from 'crypto-js';
 import { apiClient } from './client';
 import { decryptAndParse, nowTs, generateToken } from './crypto';
 import { jmLogger } from '../utils/JmLogger';
+import { apiCache, CACHE_TTL } from '../utils/ApiCache';
 import type {
   ApiResponse, SettingData, PromoteItem, LatestItem,
   SearchData, MoreListData, AlbumDetail, ComicReadData, Episode,
@@ -20,6 +21,16 @@ async function encryptedGet<T>(path: string, q?: Record<string, string | number>
   const ts = nowTs();
   const data = await apiClient.get<string>(path, q);
   return decryptAndParse<T>(ts, data);
+}
+
+/** 带缓存的 GET */
+async function cachedGet<T>(path: string, q: Record<string, string | number> | undefined, ttl: number): Promise<T> {
+  const key = path + '?' + JSON.stringify(q);
+  const cached = apiCache.get<T>(key);
+  if (cached) return cached;
+  const result = await encryptedGet<T>(path, q);
+  apiCache.set(key, result, ttl);
+  return result;
 }
 
 async function encryptedPost<T>(path: string, f?: Record<string, string | number>): Promise<T> {
@@ -38,11 +49,11 @@ export async function fetchSetting(): Promise<SettingData> {
 }
 
 export async function fetchMainPromote(): Promise<PromoteItem[]> {
-  return encryptedGet<PromoteItem[]>('promote');
+  return cachedGet<PromoteItem[]>('promote', undefined, CACHE_TTL.promote);
 }
 
 export async function fetchLatest(page = 1): Promise<LatestItem[]> {
-  return encryptedGet<LatestItem[]>('latest', { page });
+  return cachedGet<LatestItem[]>('latest', { page }, CACHE_TTL.latest);
 }
 
 export async function fetchWeekData(): Promise<{ categories: { id: string; title: string; time: string }[]; type: { id: string; title: string }[] }> {
@@ -173,11 +184,17 @@ export async function fetchAlbumDetail(albumId: string): Promise<AlbumDetail> {
 }
 
 export async function fetchComicRead(chapterId: string): Promise<ComicReadData> {
+  const key = 'comic_read:' + chapterId;
+  const cached = apiCache.get<ComicReadData>(key);
+  if (cached) return cached;
   try {
-    return await encryptedGet<ComicReadData>('comic_read', { id: chapterId });
+    const result = await encryptedGet<ComicReadData>('comic_read', { id: chapterId });
+    apiCache.set(key, result, CACHE_TTL.comic_read);
+    return result;
   } catch {
-    // 降级: 尝试 PicaComic 的 /chapter 路径
-    return encryptedGet<ComicReadData>('chapter', { id: chapterId });
+    const result = await encryptedGet<ComicReadData>('chapter', { id: chapterId });
+    apiCache.set(key, result, CACHE_TTL.comic_read);
+    return result;
   }
 }
 

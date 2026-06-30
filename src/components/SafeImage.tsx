@@ -1,9 +1,9 @@
 // SafeImage — 原生下载 + base64 DataURL + Canvas 解扰
-// 带 JM 日志系统
+// 自适应高宽比，无缝衔接
 // @author Jason
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { buildDescrambleHtml, buildSimpleImageHtml, extractFilename } from '../utils/scramble';
 import { jmLogger } from '../utils/JmLogger';
@@ -18,11 +18,15 @@ const IMG_HEADERS: Record<string, string> = {
   'X-Requested-With': 'com.jiaohua_browser',
 };
 
-interface Props { imageUrl: string; epsId: string; pictureName?: string; style?: any; onLoad?: () => void; }
+interface Props { imageUrl: string; epsId: string; pictureName?: string; containerWidth: number; height?: number; onLoad?: () => void; onDimension?: (w: number, h: number) => void; }
 
 const SC_ID = '220980';
 
 async function urlToDataUri(url: string): Promise<string> {
+  // 检查磁盘缓存
+  const { getCachedImageDataUri, saveCachedImageDataUri } = await import('../utils/ImageCache');
+  const cached = await getCachedImageDataUri(url);
+  if (cached) { jmLogger.log(`cache hit: ${url.slice(0, 60)}`); return cached; }
   jmLogger.log(`fetch: ${url}`);
   const response = await fetch(url, { headers: IMG_HEADERS });
   if (!response.ok) throw new Error(`fetch HTTP ${response.status}`);
@@ -35,49 +39,66 @@ async function urlToDataUri(url: string): Promise<string> {
     reader.readAsDataURL(blob);
   });
   jmLogger.ok(`dataURI len=${dataUri.length}`);
+  // 异步写入磁盘缓存（不阻塞）
+  saveCachedImageDataUri(url, dataUri).catch(() => {});
   return dataUri;
 }
 
-export function SafeImage({ imageUrl, epsId, pictureName, style, onLoad }: Props) {
+export function SafeImage({ imageUrl, epsId, pictureName, containerWidth, height: overrideHeight, onLoad, onDimension }: Props) {
   const [dataUri, setDataUri] = useState<string | null>(null);
   const [fallback, setFallback] = useState(false);
+  const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
   const picName = (pictureName || extractFilename(imageUrl)).replace(/\.\w+$/, '');
 
   useEffect(() => {
     let cancel = false;
-    jmLogger.log(`SafeImage: epsId=${epsId} picName=${picName} fallback=${fallback}`);
     downloadQueue.enqueue(() => urlToDataUri(imageUrl))
-      .then(uri => { if (!cancel) { jmLogger.ok('下载完成, 准备解扰'); setDataUri(uri); } })
-      .catch(e => { if (!cancel) { jmLogger.err(`下载失败: ${e.message}, 降级到原始 URL`); setDataUri(imageUrl); setFallback(true); } });
+      .then(uri => { if (!cancel) { setDataUri(uri); } })
+      .catch(e => { if (!cancel) { setDataUri(imageUrl); setFallback(true); } });
     return () => { cancel = true; };
   }, [imageUrl]);
+
+  const height = overrideHeight || (natural ? (containerWidth * natural.h / natural.w) : containerWidth * 1.45);
+
+  useEffect(() => {
+    if (natural && onDimension) onDimension(natural.w, natural.h);
+  }, [natural]);
 
   const html = useMemo(() => {
     if (!dataUri) return '';
     if (fallback) {
-      jmLogger.warn('降级模式: 直接显示图片（无解扰）');
       return buildSimpleImageHtml(dataUri);
     }
     try {
-      const h = buildDescrambleHtml(dataUri, epsId, SC_ID, picName);
-      jmLogger.ok(`HTML 生成完毕`);
-      return h;
+      return buildDescrambleHtml(dataUri, epsId, SC_ID, picName);
     } catch (e: any) {
       jmLogger.err(`HTML 生成失败: ${e.message}`);
       return buildSimpleImageHtml(dataUri);
     }
   }, [dataUri, epsId, picName, fallback]);
 
-  if (!dataUri) return <View style={[{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }, style]}><ActivityIndicator size="small" color="#ff6b35" /></View>;
+  const handleMessage = (e: any) => {
+    const msg = e.nativeEvent?.data || '';
+    if (msg.startsWith('DIM:')) {
+      const parts = msg.slice(4).split(',');
+      const w = parseInt(parts[0], 10);
+      const h = parseInt(parts[1], 10);
+      if (w > 0 && h > 0) setNatural({ w, h });
+    } else {
+      jmLogger.wv(msg);
+    }
+  };
 
   return (
-    <View style={[{ flex: 1, backgroundColor: '#000' }, style]}>
-      <WebView style={{ flex: 1, backgroundColor: 'transparent' }} source={{ html }}
-        scrollEnabled={false} bounces={false} overScrollMode="never"
-        javaScriptEnabled domStorageEnabled originWhitelist={['*']} mixedContentMode="always"
-        onLoad={onLoad}
-        onMessage={(e) => { jmLogger.wv(e.nativeEvent?.data || ''); }}
-      />
+    <View style={{ width: containerWidth, height, backgroundColor: '#000' }}>
+      {html ? (
+        <WebView style={{ flex: 1, backgroundColor: 'transparent' }} source={{ html }}
+          scrollEnabled={false} bounces={false} overScrollMode="never"
+          javaScriptEnabled domStorageEnabled originWhitelist={['*']} mixedContentMode="always"
+          onLoad={onLoad}
+          onMessage={handleMessage}
+        />
+      ) : null}
     </View>
   );
 }

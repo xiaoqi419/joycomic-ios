@@ -141,14 +141,21 @@ canvas{display:block;width:100vw;height:100vh;object-fit:contain}
           y += h;
         }
         log('done strips=' + blocks.length);
+        try { window.ReactNativeWebView.postMessage('DIM:' + img.naturalWidth + ',' + img.naturalHeight); } catch(e) {}
       } catch(e) {
         log('ERR draw: ' + e.message);
-        document.body.innerHTML = '<img src="' + '${safeUrl}' + '" style="max-width:100%;max-height:100vh;object-fit:contain">';
+        document.body.innerHTML = '<img id="fallback_img" src="' + '${safeUrl}' + '" style="display:block;width:100vw;height:auto">';
+        document.getElementById("fallback_img").onload = function(){
+          try { window.ReactNativeWebView.postMessage('DIM:' + this.naturalWidth + ',' + this.naturalHeight); } catch(e) {}
+        };
       }
     };
     img.onerror = function() {
       log('ERR img.onerror');
-      document.body.innerHTML = '<img src="' + '${safeUrl}' + '" style="max-width:100%;max-height:100vh;object-fit:contain">';
+      document.body.innerHTML = '<img id="fallback_img" src="' + '${safeUrl}' + '" style="display:block;width:100vw;height:auto">';
+      document.getElementById("fallback_img").onload = function(){
+        try { window.ReactNativeWebView.postMessage('DIM:' + this.naturalWidth + ',' + this.naturalHeight); } catch(e) {}
+      };
     };
     img.src = '${safeUrl}';
     log('img.src set');
@@ -179,7 +186,7 @@ img{display:block;width:100vw;height:100vh;object-fit:contain}
 </style>
 </head>
 <body>
-<img src="${safeUrl}" alt="">
+<img id="img" src="${safeUrl}" onload="try{window.ReactNativeWebView.postMessage('DIM:'+this.naturalWidth+','+this.naturalHeight)}catch(e){}" alt="">
 </body>
 </html>`;
 }
