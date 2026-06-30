@@ -18,6 +18,7 @@ import { useHistoryStore } from '../store/useHistory';
 import { fetchComicRead, fetchAlbumDetail, getImgHost } from '../api/endpoints';
 import { extractFilename, extractFilenameWithoutExt } from '../utils/scramble';
 import { Colors, FontSize, Radius, Spacing } from '../theme';
+import { DebugOverlay } from '../components/DebugOverlay';
 import type { Episode } from '../api/types';
 
 export function ReaderScreen() {
@@ -272,6 +273,7 @@ export function ReaderScreen() {
           </View>
         </View>
       </Modal>
+      <DebugOverlay />
     </View>
   );
 }

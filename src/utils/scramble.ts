@@ -4,8 +4,7 @@
 // @author nyx
 
 import CryptoJS from 'crypto-js';
-
-const JM_DEBUG = true;
+import { jmLogger } from './JmLogger';
 
 /**
  * 计算分段数 (即百叶窗的叶片数)
@@ -34,14 +33,14 @@ export function getSegmentationNum(
     const charCode = hash.charCodeAt(hash.length - 1);
     const remainder = charCode % 8;
     num = remainder * 2 + 2;
-    if (JM_DEBUG) console.log(`[JM] MD5("${md5Input}")=${hash} last=${charCode} %8=${remainder} *2+2=${num}`);
+    jmLogger.log(`MD5("${md5Input}")=${hash} last=${charCode} %8=${remainder} *2+2=${num}`);
   } else {
     const md5Input = epsId + pictureName;
     const hash = CryptoJS.MD5(md5Input).toString(CryptoJS.enc.Hex);
     const charCode = hash.charCodeAt(hash.length - 1);
     const remainder = charCode % 10;
     num = remainder * 2 + 2;
-    if (JM_DEBUG) console.log(`[JM] MD5("${md5Input}")=${hash} last=${charCode} %10=${remainder} *2+2=${num}`);
+    jmLogger.log(`MD5("${md5Input}")=${hash} last=${charCode} %10=${remainder} *2+2=${num}`);
   }
   return num;
 }
