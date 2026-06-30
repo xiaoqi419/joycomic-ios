@@ -1,6 +1,7 @@
 // 禁漫天堂 API 封装 — 路径从 APK JS bundle 精确提取
 // @author nyx
 
+import CryptoJS from 'crypto-js';
 import { apiClient } from './client';
 import { decryptAndParse, nowTs, generateToken } from './crypto';
 import { jmLogger } from '../utils/JmLogger';
@@ -97,58 +98,77 @@ function extractEpisodes(data: any): Episode[] {
   return [];
 }
 
-export async function fetchAlbumDetail(albumId: string): Promise<AlbumDetail> {
+/**
+ * 用指定 secret 生成 token 并请求 album 端点
+ */
+async function tryAlbumWithSecret(albumId: string, tokenSecret: string, version: string, path = 'album'): Promise<AlbumDetail | null> {
   const ts = nowTs();
-  // 尝试1: 标准加密路径
   try {
-    const data = await apiClient.get<string>('album', { id: albumId });
-    const detail = decryptAndParse<AlbumDetail>(ts, data) as any;
-    if (!detail.series?.length) {
-      detail.series = extractEpisodes(detail);
-    }
-    jmLogger.log(`fetchAlbumDetail OK id=${albumId} series=${detail.series?.length || 0}`);
+    const token = CryptoJS.MD5(`${ts}${tokenSecret}`).toString(CryptoJS.enc.Hex);
+    const tokenparam = `${ts},${version}`;
+    const domain = apiClient.getMainHost() || apiClient.getDomains()[0];
+    const url = `https://${domain}/${path}?id=${albumId}`;
+    const resp = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/138.0.0.0 Mobile Safari/537.36',
+        Accept: 'application/json, text/plain, */*',
+        'Accept-Encoding': 'gzip, deflate, br, zstd',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+        'X-Requested-With': 'com.example.app',
+        token,
+        tokenparam,
+        Authorization: 'Bearer',
+        'Sec-Fetch-Storage-Access': 'active',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'cross-site',
+        Connection: 'keep-alive',
+        Origin: 'https://localhost',
+        Referer: 'https://localhost/',
+      },
+    });
+    const text = await resp.text();
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const json = JSON.parse(text);
+    const detail = decryptAndParse<AlbumDetail>(ts, json.data) as any;
+    if (!detail.series?.length) detail.series = extractEpisodes(detail);
+    jmLogger.log(`tryAlbumWithSecret(${tokenSecret.slice(0,8)}...) OK series=${detail.series?.length}`);
     return detail as AlbumDetail;
   } catch (e: any) {
-    jmLogger.warn(`fetchAlbumDetail encrypt path fail: ${e.message}`);
+    jmLogger.warn(`tryAlbumWithSecret(${tokenSecret.slice(0,8)}...) fail: ${e.message}`);
+    return null;
   }
-  // 尝试2: 标准加密路径 /api/album
-  try {
-    const data = await apiClient.get<string>('/api/album', { id: albumId });
-    const detail = decryptAndParse<AlbumDetail>(ts, data) as any;
-    if (!detail.series?.length) {
-      detail.series = extractEpisodes(detail);
+}
+
+export async function fetchAlbumDetail(albumId: string): Promise<AlbumDetail> {
+  // 版本轮询: 从 APK 提取的实际版本号
+  const versions = ['2.0.26', '2.0.25', '2.0.24', '1.7.2'];
+  // secret 轮询: PicaComic 用 18comicAPPContent, APK 用 185Hcomic3PAPP7R
+  const secrets = ['18comicAPPContent', '185Hcomic3PAPP7R'];
+  // 路径轮询
+  const paths = ['album', '/api/album'];
+
+  for (const secret of secrets) {
+    for (const version of versions) {
+      for (const path of paths) {
+        const result = await tryAlbumWithSecret(albumId, secret, version, path);
+        if (result) return result;
+      }
     }
-    jmLogger.log(`fetchAlbumDetail OK (/api/album) id=${albumId} series=${detail.series?.length || 0}`);
-    return detail as AlbumDetail;
-  } catch (e: any) {
-    jmLogger.warn(`fetchAlbumDetail /api/album fail: ${e.message}`);
   }
-  // 尝试3: 明文 JSON（无加密）
+
+  // 最后尝试: 明文 JSON
   try {
     const text = await apiClient.getWeb('album', { id: albumId });
     const parsed = JSON.parse(text);
     const detail = (parsed.data || parsed) as any;
-    if (!detail.series?.length) {
-      detail.series = extractEpisodes(detail);
-    }
+    if (!detail.series?.length) detail.series = extractEpisodes(detail);
     jmLogger.log(`fetchAlbumDetail OK (plain) id=${albumId} series=${detail.series?.length || 0}`);
     return detail as AlbumDetail;
   } catch (e: any) {
     jmLogger.err(`fetchAlbumDetail all attempts failed for id=${albumId}: ${e.message}`);
   }
-  // 尝试4: 明文 JSON /api/album
-  try {
-    const text = await apiClient.getWeb('/api/album', { id: albumId });
-    const parsed = JSON.parse(text);
-    const detail = (parsed.data || parsed) as any;
-    if (!detail.series?.length) {
-      detail.series = extractEpisodes(detail);
-    }
-    jmLogger.log(`fetchAlbumDetail OK (plain /api/album) id=${albumId}`);
-    return detail as AlbumDetail;
-  } catch (e: any) {
-    jmLogger.err(`fetchAlbumDetail all attempts failed for id=${albumId}: ${e.message}`);
-  }
+
   throw new Error(`获取漫画详情失败: ${albumId}`);
 }
 

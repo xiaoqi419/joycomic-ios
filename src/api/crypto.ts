@@ -7,7 +7,7 @@ import CryptoJS from 'crypto-js';
 const APP_TOKEN_SECRET = '185Hcomic3PAPP7R';
 const APP_TOKEN_SECRET_2 = '18comicAPPContent';
 const APP_DATA_SECRET = '185Hcomic3PAPP7R';
-const APP_VERSION = '1.7.2';
+const APP_VERSION = '2.0.26';
 
 function md5Hex(data: string): string {
   return CryptoJS.MD5(data).toString(CryptoJS.enc.Hex);
