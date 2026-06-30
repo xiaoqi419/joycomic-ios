@@ -5,7 +5,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, useWindowDimensions, StatusBar,
-  ScrollView, Pressable, ActivityIndicator, Modal, Alert, StyleSheet,
+  Pressable, ActivityIndicator, Modal, Alert, StyleSheet,
 } from 'react-native';
 import { SafeImage } from '../components/SafeImage';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,10 +13,9 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useReaderStore } from '../store/useReader';
-import { useSettingsStore } from '../store/useSettings';
 import { useHistoryStore } from '../store/useHistory';
 import { fetchComicRead, fetchAlbumDetail, getImgHost } from '../api/endpoints';
-import { extractFilename, extractFilenameWithoutExt } from '../utils/scramble';
+import { extractFilename } from '../utils/scramble';
 import { Colors, FontSize, Radius, Spacing } from '../theme';
 import { DebugOverlay } from '../components/DebugOverlay';
 import type { Episode } from '../api/types';
@@ -34,7 +33,6 @@ export function ReaderScreen() {
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [showChapterModal, setShowChapterModal] = useState(false);
   const flatRef = useRef<FlatList>(null);
-  const scrollRef = useRef<ScrollView>(null);
 
   const toggleUI = () => setShowUI((p) => !p);
 
@@ -75,8 +73,8 @@ export function ReaderScreen() {
         page: 0,
         readAt: Date.now(),
       });
-      // 切换章节后滚回顶部
-      scrollRef.current?.scrollTo({ y: 0, animated: false });
+      // 切换章节后通过 FlatList scrollToIndex 滚回顶部
+      flatRef.current?.scrollToIndex({ index: 0, animated: false });
     } catch {}
     setLoading(false);
   };
@@ -104,44 +102,46 @@ export function ReaderScreen() {
         </View>
       )}
 
-      {/* 主内容 */}
+      {/* 主内容 — 默认纵向 FlatList */}
       {isVertical ? (
-        <ScrollView
-          ref={scrollRef}
-          onScroll={(e) => {
-            const offsetY = e.nativeEvent.contentOffset.y;
-            const maxScroll = Math.max(1, e.nativeEvent.contentSize.height - H);
-            const progress = Math.min(totalPages, Math.round((offsetY / maxScroll) * totalPages));
-            setPage(Math.min(progress, totalPages - 1));
+        <FlatList
+          key={'v' + (useReaderStore.getState().chapterId || chapterId)}
+          data={imageUrls}
+          keyExtractor={(_, i) => String(i)}
+          showsVerticalScrollIndicator={false}
+          initialScrollIndex={0}
+          getItemLayout={(_, index) => ({ length: H, offset: H * index, index })}
+          windowSize={5}
+          removeClippedSubviews={false}
+          onMomentumScrollEnd={(e) => {
+            const page = Math.round(e.nativeEvent.contentOffset.y / H);
+            setPage(page);
           }}
-          scrollEventThrottle={16}
-          style={{ flex: 1 }}
-        >
-          <TouchableOpacity activeOpacity={1} onPress={toggleUI} style={{ minHeight: H + 1 }}>
-            {imageUrls.map((url, i) => {
-              const store = useReaderStore.getState();
-              const picName = extractFilename(url);
-              return (
+          renderItem={({ item, index }) => {
+            const store = useReaderStore.getState();
+            const picName = extractFilename(item);
+            return (
+              <TouchableOpacity activeOpacity={1} onPress={toggleUI} style={{ width: W, height: H }}>
                 <SafeImage
-                  key={i}
-                  imageUrl={url}
+                  imageUrl={item}
                   epsId={store.chapterId || chapterId}
                   pictureName={picName}
                   style={{ width: W, height: H }}
                 />
-              );
-            })}
-          </TouchableOpacity>
-        </ScrollView>
+              </TouchableOpacity>
+            );
+          }}
+        />
       ) : (
         <FlatList
           ref={flatRef}
+          key={'h' + (useReaderStore.getState().chapterId || chapterId)}
           data={imageUrls}
           keyExtractor={(_, i) => String(i)}
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
-          initialScrollIndex={currentPage}
+          initialScrollIndex={0}
           getItemLayout={(_, index) => ({ length: W, offset: W * index, index })}
           onMomentumScrollEnd={(e) => {
             const page = Math.round(e.nativeEvent.contentOffset.x / W);

@@ -3,9 +3,10 @@
 
 import { apiClient } from './client';
 import { decryptAndParse, nowTs, generateToken } from './crypto';
+import { jmLogger } from '../utils/JmLogger';
 import type {
   ApiResponse, SettingData, PromoteItem, LatestItem,
-  SearchData, MoreListData, AlbumDetail, ComicReadData,
+  SearchData, MoreListData, AlbumDetail, ComicReadData, Episode,
   CommentItem, CommentReply, FavoriteData, FavoriteFolder,
   LoginData, MemberData, SignData, AchievementData,
   MovieItem, VideoDetailData,
@@ -74,8 +75,81 @@ export async function fetchCategoriesFilter(params: { page?: number; o?: string 
   });
 }
 
+/**
+ * 从可能的字段名中提取章节列表
+ * JM API 可能使用不同的字段名
+ */
+function extractEpisodes(data: any): Episode[] {
+  const candidates = ['series', 'episodes', 'chapter_list', 'album_series', 'list', 'album_series_list', 'chapters'];
+  for (const key of candidates) {
+    const raw = data?.[key];
+    if (Array.isArray(raw) && raw.length > 0) {
+      jmLogger.log(`fetchAlbumDetail: episodes found in field "${key}" count=${raw.length}`);
+      // 归一化字段名
+      return raw.map((ep: any) => ({
+        id: String(ep.id || ep.chapter_id || ep.album_id || ''),
+        name: ep.name || ep.title || ep.chapter_name || `第${ep.sort || ep.order || '?'}话`,
+        sort: String(ep.sort || ep.order || ep.sort_order || '0'),
+        page_count: ep.page_count || ep.pageCount || ep.total_page || undefined,
+      }));
+    }
+  }
+  return [];
+}
+
 export async function fetchAlbumDetail(albumId: string): Promise<AlbumDetail> {
-  return encryptedGet<AlbumDetail>('album', { id: albumId });
+  const ts = nowTs();
+  // 尝试1: 标准加密路径
+  try {
+    const data = await apiClient.get<string>('album', { id: albumId });
+    const detail = decryptAndParse<AlbumDetail>(ts, data) as any;
+    if (!detail.series?.length) {
+      detail.series = extractEpisodes(detail);
+    }
+    jmLogger.log(`fetchAlbumDetail OK id=${albumId} series=${detail.series?.length || 0}`);
+    return detail as AlbumDetail;
+  } catch (e: any) {
+    jmLogger.warn(`fetchAlbumDetail encrypt path fail: ${e.message}`);
+  }
+  // 尝试2: 标准加密路径 /api/album
+  try {
+    const data = await apiClient.get<string>('/api/album', { id: albumId });
+    const detail = decryptAndParse<AlbumDetail>(ts, data) as any;
+    if (!detail.series?.length) {
+      detail.series = extractEpisodes(detail);
+    }
+    jmLogger.log(`fetchAlbumDetail OK (/api/album) id=${albumId} series=${detail.series?.length || 0}`);
+    return detail as AlbumDetail;
+  } catch (e: any) {
+    jmLogger.warn(`fetchAlbumDetail /api/album fail: ${e.message}`);
+  }
+  // 尝试3: 明文 JSON（无加密）
+  try {
+    const text = await apiClient.getWeb('album', { id: albumId });
+    const parsed = JSON.parse(text);
+    const detail = (parsed.data || parsed) as any;
+    if (!detail.series?.length) {
+      detail.series = extractEpisodes(detail);
+    }
+    jmLogger.log(`fetchAlbumDetail OK (plain) id=${albumId} series=${detail.series?.length || 0}`);
+    return detail as AlbumDetail;
+  } catch (e: any) {
+    jmLogger.err(`fetchAlbumDetail all attempts failed for id=${albumId}: ${e.message}`);
+  }
+  // 尝试4: 明文 JSON /api/album
+  try {
+    const text = await apiClient.getWeb('/api/album', { id: albumId });
+    const parsed = JSON.parse(text);
+    const detail = (parsed.data || parsed) as any;
+    if (!detail.series?.length) {
+      detail.series = extractEpisodes(detail);
+    }
+    jmLogger.log(`fetchAlbumDetail OK (plain /api/album) id=${albumId}`);
+    return detail as AlbumDetail;
+  } catch (e: any) {
+    jmLogger.err(`fetchAlbumDetail all attempts failed for id=${albumId}: ${e.message}`);
+  }
+  throw new Error(`获取漫画详情失败: ${albumId}`);
 }
 
 export async function fetchComicRead(chapterId: string): Promise<ComicReadData> {
