@@ -109,98 +109,60 @@ function extractEpisodes(data: any): Episode[] {
   return [];
 }
 
-/**
- * 用指定 secret 生成 token 并请求 album 端点
- */
 async function tryAlbumWithSecret(albumId: string, tokenSecret: string, version: string, path = 'album'): Promise<AlbumDetail | null> {
   const ts = nowTs();
-  // 遍历所有 CDN 代理域名，因为缓存分布不均
   const domains = apiClient.getDomains();
+  const token = CryptoJS.MD5(`${ts}${tokenSecret}`).toString(CryptoJS.enc.Hex);
+  const tokenparam = `${ts},${version}`;
+
   for (const domain of domains) {
     try {
-      const token = CryptoJS.MD5(`${ts}${tokenSecret}`).toString(CryptoJS.enc.Hex);
-      const tokenparam = `${ts},${version}`;
       const url = `https://${domain}/${path}?id=${albumId}`;
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), 8000);
       const resp = await fetch(url, {
+        signal: ctrl.signal,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/138.0.0.0 Mobile Safari/537.36',
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K; wv) AppleWebKit/537.36 Chrome/138 Mobile',
           Accept: 'application/json, text/plain, */*',
-          'Accept-Encoding': 'gzip, deflate, br, zstd',
-          'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
-          'X-Requested-With': 'com.example.app',
           token,
           tokenparam,
-          Authorization: 'Bearer',
-          'Sec-Fetch-Storage-Access': 'active',
-          'Sec-Fetch-Dest': 'empty',
-          'Sec-Fetch-Mode': 'cors',
-          'Sec-Fetch-Site': 'cross-site',
-          Connection: 'keep-alive',
-          Origin: 'https://localhost',
-          Referer: 'https://localhost/',
+          'X-Requested-With': 'com.jmcomic3.app',
+          Referer: 'https://18comic.vip/',
         },
       });
+      clearTimeout(tid);
       const text = await resp.text();
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      // 跳过空数据响应（CDN 未缓存）
       if (text.includes('"data":[]') || text.length < 100) continue;
       const json = JSON.parse(text);
       const detail = decryptAndParse<AlbumDetail>(ts, json.data) as any;
-      if (!detail || !detail.id) continue; // 空数据，试下一个域名
+      if (!detail || !detail.id) continue;
       if (!detail.series?.length) detail.series = extractEpisodes(detail);
-      jmLogger.log(`tryAlbumWithSecret(${tokenSecret.slice(0,8)}...) OK domain=${domain} series=${detail.series?.length}`);
+      jmLogger.log(`tryAlbumWithSecret OK domain=${domain} series=${detail.series?.length}`);
       return detail as AlbumDetail;
     } catch (e: any) {
-      jmLogger.warn(`tryAlbumWithSecret(${tokenSecret.slice(0,8)}...) domain=${domain} fail: ${e.message}`);
+      if (e.name === 'AbortError') jmLogger.warn(`tryAlbumWithSecret domain=${domain} timeout`);
+      else jmLogger.warn(`tryAlbumWithSecret domain=${domain} fail: ${e.message}`);
     }
   }
   return null;
 }
 
 export async function fetchAlbumDetail(albumId: string): Promise<AlbumDetail> {
-  // 版本轮询: 从 APK 提取的实际版本号
-  const versions = ['2.0.26', '2.0.25', '2.0.24', '1.7.2'];
-  // secret 轮询: PicaComic 用 18comicAPPContent, APK 用 185Hcomic3PAPP7R
-  const secrets = ['18comicAPPContent', '185Hcomic3PAPP7R'];
-  // 路径轮询
-  const paths = ['album', '/api/album'];
+  // 最可能的配置优先，秒级返回
+  const result = await tryAlbumWithSecret(albumId, '185Hcomic3PAPP7R', '2.0.26', 'album');
+  if (result) return result;
 
-  for (const secret of secrets) {
-    for (const version of versions) {
-      for (const path of paths) {
-        const result = await tryAlbumWithSecret(albumId, secret, version, path);
-        if (result) return result;
-      }
-    }
-  }
+  // 备用: 换 secret（极少需要）
+  const result2 = await tryAlbumWithSecret(albumId, '18comicAPPContent', '2.0.26', 'album');
+  if (result2) return result2;
 
-  // 最后尝试: 遍历所有 CDN 域名 + 默认 secret
-  for (const domain of apiClient.getDomains()) {
-    try {
-      const ts = nowTs();
-      const token = CryptoJS.MD5(`${ts}${secrets[0]}`).toString(CryptoJS.enc.Hex);
-      const tokenparam = `${ts},${versions[0]}`;
-      const resp = await fetch(`https://${domain}/album?id=${albumId}`, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K; wv) AppleWebKit/537.36',
-          Accept: 'application/json, text/plain, */*',
-          token, tokenparam,
-          'X-Requested-With': 'com.example.app',
-        },
-      });
-      const text = await resp.text();
-      if (!resp.ok || text.includes('"data":[]') || text.length < 100) continue;
-      const json = JSON.parse(text);
-      const detail = decryptAndParse<AlbumDetail>(ts, json.data) as any;
-      if (detail && detail.id) {
-        if (!detail.series?.length) detail.series = extractEpisodes(detail);
-        jmLogger.log(`fetchAlbumDetail OK (fallback domain=${domain}) id=${albumId} series=${detail.series?.length || 0}`);
-        return detail as AlbumDetail;
-      }
-    } catch {}
-  }
+  // 备用: 换版本号
+  const result3 = await tryAlbumWithSecret(albumId, '185Hcomic3PAPP7R', '1.7.2', 'album');
+  if (result3) return result3;
 
-  jmLogger.err(`fetchAlbumDetail all attempts failed for id=${albumId}`);
+  jmLogger.err(`fetchAlbumDetail failed for id=${albumId}`);
   throw new Error(`获取漫画详情失败: ${albumId}`);
 }
 
