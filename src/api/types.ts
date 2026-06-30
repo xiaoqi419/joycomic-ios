@@ -190,7 +190,9 @@ export interface FavoriteData {
 
 export interface FavoriteFolder {
   FID: string;
+  folder_id?: string;
   name: string;
+  count?: string;
 }
 
 // ===== 用户 =====

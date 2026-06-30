@@ -452,8 +452,8 @@ export function ComicDetailScreen() {
             <ScrollView style={{ maxHeight: 300 }}>
               {folders.map((f) => (
                 <Pressable
-                  key={f.folder_id}
-                  onPress={() => handleFolderSelect(f.folder_id)}
+                  key={(f.FID || f.folder_id)}
+                  onPress={() => handleFolderSelect((f.FID || f.folder_id))}
                   style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 8, borderBottomWidth: 0.5, borderBottomColor: Colors.divider }}
                 >
                   <MaterialIcons name="folder" size={20} color={Colors.primary} style={{ marginRight: 8 }} />
@@ -500,23 +500,23 @@ export function ComicDetailScreen() {
             </View>
             <ScrollView style={{ maxHeight: 300 }}>
               {folders.map((f) => (
-                <View key={f.folder_id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 0.5, borderBottomColor: Colors.divider }}>
-                  {folderRename?.id === f.folder_id ? (
+                <View key={(f.FID || f.folder_id)} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 0.5, borderBottomColor: Colors.divider }}>
+                  {folderRename?.id === (f.FID || f.folder_id) ? (
                     <TextInput
                       style={{ flex: 1, height: 32, backgroundColor: Colors.surfaceLight, borderRadius: 4, paddingHorizontal: 8, color: Colors.textPrimary, fontSize: FontSize.body }}
                       value={folderRename.name}
                       onChangeText={(t) => setFolderRename({ ...folderRename, name: t })}
-                      onSubmitEditing={() => { renameFolder(f.folder_id, folderRename.name); setFolderRename(null); }}
+                      onSubmitEditing={() => { renameFolder((f.FID || f.folder_id), folderRename.name); setFolderRename(null); }}
                       autoFocus
                     />
                   ) : (
                     <>
                       <MaterialIcons name="folder" size={18} color={Colors.primary} style={{ marginRight: 6 }} />
                       <Text style={{ flex: 1, color: Colors.textPrimary, fontSize: FontSize.body }}>{f.name}</Text>
-                      <Pressable onPress={() => setFolderRename({ id: f.folder_id, name: f.name })} hitSlop={8} style={{ padding: 4 }}>
+                      <Pressable onPress={() => setFolderRename({ id: (f.FID || f.folder_id), name: f.name })} hitSlop={8} style={{ padding: 4 }}>
                         <MaterialIcons name="edit" size={18} color={Colors.textSecondary} />
                       </Pressable>
-                      <Pressable onPress={() => handleDeleteFolder(f.folder_id)} hitSlop={8} style={{ padding: 4 }}>
+                      <Pressable onPress={() => handleDeleteFolder((f.FID || f.folder_id))} hitSlop={8} style={{ padding: 4 }}>
                         <MaterialIcons name="delete-outline" size={18} color={Colors.error} />
                       </Pressable>
                     </>
