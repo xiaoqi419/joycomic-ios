@@ -119,14 +119,14 @@ async function tryAlbumWithSecret(albumId: string, tokenSecret: string, version:
     try {
       const url = `https://${domain}/${path}?id=${albumId}`;
       const ctrl = new AbortController();
-      const tid = setTimeout(() => ctrl.abort(), 8000);
+      const tid = setTimeout(() => ctrl.abort(), 15000);
       const resp = await fetch(url, {
         signal: ctrl.signal,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K; wv) AppleWebKit/537.36 Chrome/138 Mobile',
           Accept: 'application/json, text/plain, */*',
-          token,
-          tokenparam,
+          Token: token,
+          Tokenparam: tokenparam,
           'X-Requested-With': 'com.jmcomic3.app',
           Referer: 'https://18comic.vip/',
         },
@@ -152,18 +152,38 @@ async function tryAlbumWithSecret(albumId: string, tokenSecret: string, version:
 export async function fetchAlbumDetail(albumId: string): Promise<AlbumDetail> {
   // 最可能的配置优先，秒级返回
   const result = await tryAlbumWithSecret(albumId, '185Hcomic3PAPP7R', '2.0.26', 'album');
-  if (result) return result;
+  if (result) return ensureEpisodes(result, albumId);
 
   // 备用: 换 secret（极少需要）
   const result2 = await tryAlbumWithSecret(albumId, '18comicAPPContent', '2.0.26', 'album');
-  if (result2) return result2;
+  if (result2) return ensureEpisodes(result2, albumId);
 
   // 备用: 换版本号
   const result3 = await tryAlbumWithSecret(albumId, '185Hcomic3PAPP7R', '1.7.2', 'album');
-  if (result3) return result3;
+  if (result3) return ensureEpisodes(result3, albumId);
 
   jmLogger.err(`fetchAlbumDetail failed for id=${albumId}`);
   throw new Error(`获取漫画详情失败: ${albumId}`);
+}
+
+/**
+ * 某些漫画是单章本（album 本身 = 章节），API 返回的 series=[]。
+ * 此时用 albumId 作为章节 ID，确保能进入阅读器。
+ */
+function ensureEpisodes(detail: AlbumDetail, albumId: string): AlbumDetail {
+  if (detail.series && detail.series.length > 0) return detail;
+  // series_id=0 或不存在 → 单章本
+  const sid = detail.series_id as any;
+  if (sid === 0 || sid === '0' || sid === undefined || sid === null || sid === '') {
+    const synthetic: Episode = {
+      id: albumId,
+      name: detail.name || '第 1 话',
+      sort: '1',
+    };
+    jmLogger.log(`ensureEpisodes: 单章本 albumId=${albumId} 创建合成章节`);
+    return { ...detail, series: [synthetic] };
+  }
+  return detail;
 }
 
 export async function fetchComicRead(chapterId: string): Promise<ComicReadData> {

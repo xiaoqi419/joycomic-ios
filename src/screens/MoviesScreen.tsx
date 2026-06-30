@@ -2,17 +2,37 @@
 // @author nyx
 
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, FlatList, Pressable, ActivityIndicator, Dimensions, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
+import { MaterialIcons } from '@expo/vector-icons';
 import { Colors, Radius, Spacing, FontSize } from '../theme';
-import { fetchMovies, fetchVideoDetail, fetchLatestHanime } from '../api/endpoints';
+import { fetchMovies, fetchVideoDetail } from '../api/endpoints';
+import { fetchImageAsDataUri } from '../utils/fetchImage';
 import type { MovieItem } from '../api/types';
 
 const { width: W } = Dimensions.get('window');
 const CARD_W = (W - Spacing.marginEdge * 2 - 8) / 2;
+
+function AuthImage({ uri }: { uri: string }) {
+  const [dataUri, setDataUri] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchImageAsDataUri(uri).then((d) => { if (!cancelled) setDataUri(d); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [uri]);
+
+  if (!dataUri) {
+    return <View style={{ width: CARD_W, height: CARD_W * 0.75, borderRadius: Radius.sm, backgroundColor: Colors.surfaceContainer }} />;
+  }
+
+  return (
+    <Image source={{ uri: dataUri }} style={{ width: CARD_W, height: CARD_W * 0.75, borderRadius: Radius.sm, backgroundColor: Colors.surfaceContainer }} contentFit="cover" />
+  );
+}
 
 export function MoviesScreen() {
   const nav = useNavigation<any>();
@@ -37,7 +57,7 @@ export function MoviesScreen() {
             onPress={() => nav.navigate('MoviePlayer', { vid: item.id })}
             style={{ width: CARD_W, margin: 4, marginBottom: 12 }}
           >
-            <Image source={{ uri: item.photo }} style={{ width: CARD_W, height: CARD_W * 0.75, borderRadius: Radius.sm, backgroundColor: Colors.surfaceContainer }} contentFit="cover" />
+            <AuthImage uri={item.photo} />
             <Text style={{ fontSize: FontSize.body, fontWeight: '600', color: Colors.text, marginTop: 4 }} numberOfLines={2}>{item.title}</Text>
             {item.tags?.length > 0 && (
               <Text style={{ fontSize: FontSize.caption, color: Colors.textTertiary }}>{item.tags.slice(0, 3).join(', ')}</Text>
@@ -57,9 +77,15 @@ export function MoviePlayerScreen() {
   const { t } = useTranslation();
   const [video, setVideo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchVideoDetail(vid).then((d) => setVideo(d.video)).catch(() => {}).finally(() => setLoading(false));
+    fetchVideoDetail(vid).then((d) => {
+      setVideo(d.video);
+      if (d.video?.photo) {
+        fetchImageAsDataUri(d.video.photo).then(setPhotoUri).catch(() => {});
+      }
+    }).catch(() => {}).finally(() => setLoading(false));
   }, [vid]);
 
   if (loading) return <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator color={Colors.primary} /></SafeAreaView>;
@@ -71,25 +97,42 @@ export function MoviePlayerScreen() {
         <Pressable onPress={() => nav.goBack()}><MaterialIcons name="arrow-back" size={24} color="#fff" /></Pressable>
         <Text style={{ color: '#fff', fontSize: 17, fontWeight: '600', marginLeft: 12 }} numberOfLines={1}>{video.title}</Text>
       </View>
-      {/* Video player (uses external browser since HLS is complex in Expo Go) */}
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-        <MaterialIcons name="play-circle-outline" size={80} color={Colors.primary} />
-        <Text style={{ color: '#fff', fontSize: 16, marginTop: 12 }}>{t('movies.play')}</Text>
-        <Text style={{ color: '#888', marginTop: 8, textAlign: 'center' }}>{video.description}</Text>
+
+      {/* 视频封面/播放按钮 */}
+      <View style={{ aspectRatio: 16 / 9, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1a1a1a' }}>
+        {photoUri ? (
+          <Image source={{ uri: photoUri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+        ) : null}
         <Pressable
           onPress={() => {
-            // In Expo Go we can't use native video. Open in browser.
-            const { Linking } = require('react-native');
-            Linking.openURL(video.video_src || video.full_url || `https://18comic.vip/video/${vid}`);
+            // full_url 是外部视频站页面，手机浏览器可直接播放
+            Linking.openURL(video.full_url || video.video_src || `https://18comic.vip/video/${vid}`);
           }}
-          style={{ marginTop: 20, backgroundColor: Colors.primary, paddingHorizontal: 32, paddingVertical: 12, borderRadius: Radius.button }}
+          style={{ position: 'absolute', width: 64, height: 64, borderRadius: 32, backgroundColor: Colors.primary, justifyContent: 'center', alignItems: 'center' }}
         >
-          <Text style={{ color: Colors.textOnPrimary, fontWeight: '700' }}>{t('movies.play')}</Text>
+          <MaterialIcons name="play-arrow" size={40} color="#fff" />
         </Pressable>
+      </View>
+
+      {/* 视频信息 */}
+      <View style={{ padding: 14, flex: 1 }}>
+        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 4 }}>{video.title}</Text>
+        {video.view ? <Text style={{ color: '#888', fontSize: 13, marginBottom: 4 }}>{t('movies.views', { count: video.view })}: {video.view}</Text> : null}
+        {video.factory ? <Text style={{ color: '#888', fontSize: 13, marginBottom: 4 }}>{t('movies.studio')}: {video.factory}</Text> : null}
+        {video.girls?.length > 0 ? <Text style={{ color: '#888', fontSize: 13, marginBottom: 4 }}>{t('movies.actress')}: {video.girls.join(', ')}</Text> : null}
+        {video.tags?.length > 0 ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+            {video.tags.map((tag: string, i: number) => (
+              <View key={i} style={{ backgroundColor: Colors.surfaceContainer, paddingHorizontal: 10, paddingVertical: 4,                 borderRadius: Radius.chip }}>
+                <Text style={{ color: Colors.textTertiary, fontSize: FontSize.caption }}>{tag}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+        {video.description ? (
+          <Text style={{ color: '#aaa', fontSize: 13, marginTop: 8, lineHeight: 18 }}>{video.description}</Text>
+        ) : null}
       </View>
     </SafeAreaView>
   );
 }
-
-import { useRoute } from '@react-navigation/native';
-import { MaterialIcons } from '@expo/vector-icons';

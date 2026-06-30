@@ -79,11 +79,8 @@ export class ApiClient {
     const h: Record<string, string> = { ...BROWSER_HEADERS };
     if (isMobile) {
       const { token, tokenparam } = generateToken(ts);
-      // APK 用大写 Token，PicaComic 用小写 token — 双发确保兼容
       h['Token'] = token;
-      h['token'] = token;
       h['Tokenparam'] = tokenparam;
-      h['tokenparam'] = tokenparam;
     }
     if (this.avsToken) {
       h['Cookie'] = `AVS=${this.avsToken}`;
@@ -114,7 +111,7 @@ export class ApiClient {
 
     const headers = this.buildHeaders(ts, isMobile);
     const ctrl = new AbortController();
-    const tid = setTimeout(() => ctrl.abort(), 8000);
+    const tid = setTimeout(() => ctrl.abort(), 15000);
     try {
       const opt: RequestInit = { method, headers, signal: ctrl.signal };
       if (config.form && method === 'POST') {
@@ -140,7 +137,7 @@ export class ApiClient {
       return text as T;
     } catch (e: any) {
       clearTimeout(tid);
-      if (retry < 3 && this.switchDomain() && e instanceof ApiError) {
+      if (retry < 3 && this.switchDomain()) {
         return this.request<T>(path, config, retry + 1);
       }
       throw e;
