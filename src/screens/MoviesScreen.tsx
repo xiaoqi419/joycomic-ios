@@ -73,7 +73,7 @@ export function MoviesScreen() {
         ListHeaderComponent={<Text style={{ fontSize: FontSize.largeTitle, fontWeight: '800', color: Colors.textPrimary, marginBottom: 14 }}>{t('movies.title')}</Text>}
         renderItem={({ item }) => (
           <Pressable
-            onPress={() => nav.navigate('MoviePlayer' as never, { vid: item.id } as never)}
+            onPress={() => nav.navigate('MoviePlayer' as never, { vid: item.id, backlink: item.backlink, title: item.title, photo: item.photo } as never)}
             style={{ width: CARD_W, margin: 4, marginBottom: 14 }}
           >
             <AuthImage uri={item.photo} />
@@ -104,24 +104,32 @@ export function MoviePlayerScreen() {
 
   useEffect(() => {
     movieLog.log('fetchVideoDetail: start vid=' + vid);
-    fetchVideoDetail(vid).then((d) => {
-      const v = d.video;
-      movieLog.log('fetchVideoDetail: keys=' + Object.keys(v || {}).join(','));
-      movieLog.log('fetchVideoDetail: video_src=' + (v?.video_src?.slice(0, 80) || '(none)'));
-      movieLog.log('fetchVideoDetail: full_url=' + (v?.full_url?.slice(0, 80) || '(none)'));
-      movieLog.log('fetchVideoDetail: title=' + (v?.title || '(none)'));
-      movieLog.log('fetchVideoDetail: photo=' + (v?.photo?.slice(0, 60) || '(none)'));
-      movieLog.log('fetchVideoDetail: view=' + v?.view + ' factory=' + v?.factory);
-      setVideo(v);
-      if (!v?.video_src) {
-        movieLog.warn('fetchVideoDetail: no video_src, falling back to WebView');
-        setUseWebView(true);
-      } else {
-        movieLog.log('fetchVideoDetail: will use native player with src=' + v.video_src);
+    fetchVideoDetail(vid).then((d: any) => {
+      movieLog.log('fetchVideoDetail: typeof d=' + typeof d + ' keys=' + Object.keys(d || {}).join(','));
+      const raw = JSON.stringify(d || {}).slice(0, 500);
+      movieLog.log('fetchVideoDetail: raw=' + raw);
+      const v = d?.video || d;
+      if (v && Object.keys(v).length > 0) {
+        movieLog.log('fetchVideoDetail: v keys=' + Object.keys(v).join(','));
+        movieLog.log('fetchVideoDetail: video_src=' + (v?.video_src?.slice(0, 80) || '(none)'));
+        movieLog.log('fetchVideoDetail: full_url=' + (v?.full_url?.slice(0, 80) || '(none)'));
+        movieLog.log('fetchVideoDetail: title=' + (v?.title || '(none)'));
+        movieLog.log('fetchVideoDetail: photo=' + (v?.photo?.slice(0, 60) || '(none)'));
+        movieLog.log('fetchVideoDetail: view=' + v?.view + ' factory=' + v?.factory);
+        setVideo(v);
+        if (v?.video_src) {
+          movieLog.log('fetchVideoDetail: will use native player with src=' + v.video_src);
+          return;
+        }
       }
+      movieLog.warn('fetchVideoDetail: API返回空, 走 WebView 兜底');
+      setUseWebView(true);
+      setVideo({ vid, title: route.params?.title, full_url: route.params?.backlink || `https://18comic.vip/video/${vid}` });
     }).catch((e: any) => {
       movieLog.err('fetchVideoDetail: failed ' + (e?.message || e));
-      setErr(e.message || '加载失败');
+      movieLog.warn('fetchVideoDetail: 异常后走 WebView 兜底');
+      setUseWebView(true);
+      setVideo({ vid, title: route.params?.title, full_url: route.params?.backlink || `https://18comic.vip/video/${vid}` });
     }).finally(() => setLoading(false));
   }, [vid]);
 
