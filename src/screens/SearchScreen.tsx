@@ -257,6 +257,7 @@ export function SearchScreen() {
         ListFooterComponent={loading ? <ActivityIndicator style={{ padding: 20 }} color={C.primary} /> : null}
         onEndReached={loadMore}
         onEndReachedThreshold={0.3}
+        keyboardShouldPersistTaps="handled"
       />
     </SafeAreaView>
   );

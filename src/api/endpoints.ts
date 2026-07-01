@@ -19,8 +19,9 @@ import type {
 
 async function encryptedGet<T>(path: string, q?: Record<string, string | number>): Promise<T> {
   const ts = nowTs();
-  const data = await apiClient.get<string>(path, q, ts);
-  return decryptAndParse<T>(ts, data);
+  const data = await apiClient.get<any>(path, q, ts);
+  if (typeof data === 'string') return decryptAndParse<T>(ts, data);
+  return data as T;
 }
 
 /** 带缓存的 GET */

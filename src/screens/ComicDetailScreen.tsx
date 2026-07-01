@@ -162,15 +162,15 @@ export function ComicDetailScreen() {
   const handleToggleFav = () => {
     if (fav) {
       removeLocal(albumId);
-    } else if (loggedIn && folders.length > 0) {
-      setShowFolderPicker(true);
-    } else if (loggedIn) {
+    } else if (!loggedIn) {
+      Alert.alert('提示', '请先登录后再收藏', [
+        { text: '取消', style: 'cancel' },
+        { text: '去登录', onPress: () => nav.navigate('Member') },
+      ]);
+    } else if (folders.length > 0) {
       setShowFolderPicker(true);
     } else {
-      addLocal({
-        id: albumId, title: detail?.name || '', coverUrl: getCoverUrl(albumId),
-        author: detail?.author?.join(', ') || '', addedAt: Date.now(),
-      });
+      setShowFolderPicker(true);
     }
   };
 

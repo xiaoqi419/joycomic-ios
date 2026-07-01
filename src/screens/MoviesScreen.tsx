@@ -14,7 +14,7 @@ import { Video, ResizeMode } from 'expo-av';
 import { useTranslation } from 'react-i18next';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors, Radius, Spacing, FontSize } from '../theme';
-import { fetchMovies, fetchVideoDetail } from '../api/endpoints';
+import { fetchMovies, fetchVideoDetail, getImgHost } from '../api/endpoints';
 import { fetchImageAsDataUri } from '../utils/fetchImage';
 import { jmLogger } from '../utils/JmLogger';
 import type { MovieItem } from '../api/types';
@@ -26,19 +26,20 @@ const CARD_W = (W - Spacing.marginEdge * 2 - 10) / 2;
 
 function AuthImage({ uri }: { uri: string }) {
   const [dataUri, setDataUri] = useState<string | null>(null);
+  const fullUri = uri.startsWith('http') ? uri : `https://${getImgHost()}/${uri.replace(/^\//, '')}`;
   useEffect(() => {
     let cancelled = false;
     if (!uri) { movieLog.warn('AuthImage: empty uri'); return; }
-    movieLog.log('AuthImage: fetching ' + uri.slice(0, 60));
-    fetchImageAsDataUri(uri).then((d) => {
+    movieLog.log('AuthImage: fetching ' + fullUri.slice(0, 80));
+    fetchImageAsDataUri(fullUri).then((d) => {
       if (cancelled) return;
       if (d) { movieLog.log('AuthImage: success ' + d.slice(0, 40)); setDataUri(d); }
-      else { movieLog.warn('AuthImage: returned null for ' + uri.slice(0, 60)); }
+      else { movieLog.warn('AuthImage: returned null for ' + fullUri.slice(0, 80)); }
     }).catch((e: any) => {
-      movieLog.err('AuthImage: failed ' + uri.slice(0, 60) + ' ' + (e?.message || e));
+      movieLog.err('AuthImage: failed ' + fullUri.slice(0, 80) + ' ' + (e?.message || e));
     });
     return () => { cancelled = true; };
-  }, [uri]);
+  }, [fullUri]);
   if (!dataUri) return <View style={{ width: CARD_W, height: CARD_W * 0.75, borderRadius: Radius.sm, backgroundColor: Colors.surfaceContainer }} />;
   return (
     <Image source={{ uri: dataUri }} style={{ width: CARD_W, height: CARD_W * 0.75, borderRadius: Radius.sm, backgroundColor: Colors.surfaceContainer }} contentFit="cover" />

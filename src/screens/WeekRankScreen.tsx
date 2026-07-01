@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { fetchWeekData, fetchWeekFilter, getCoverUrl } from '../api/endpoints';
 import { useAppTheme } from '../theme';
@@ -164,9 +165,11 @@ export function WeekRankScreen() {
       ]}
     >
       <View style={css.cardInner}>
-        <View style={css.coverWrap}>
-          <Text style={css.coverPlaceholder}>{item.name[0] || '?'}</Text>
-        </View>
+        <Image
+          source={{ uri: getCoverUrl(item.id) }}
+          style={css.cover}
+          contentFit="cover"
+        />
         <Text style={[css.cardTitle, { color: colors.onSurface }]} numberOfLines={2}>
           {item.name}
         </Text>
@@ -314,8 +317,7 @@ const css = StyleSheet.create({
   listContent: { paddingHorizontal: Spacing.marginEdge, paddingBottom: 100 },
   cardOuter: { flex: 1, margin: 4, borderRadius: Radius.card, overflow: 'hidden', marginBottom: 12 },
   cardInner: { padding: 0 },
-  coverWrap: { width: '100%', aspectRatio: 0.7, backgroundColor: '#2C2C30', justifyContent: 'center', alignItems: 'center' },
-  coverPlaceholder: { fontSize: 24, fontWeight: '700', color: '#666' },
+  cover: { width: '100%', aspectRatio: 0.7, backgroundColor: '#2C2C30' },
   cardTitle: { fontSize: FontSize.label, fontWeight: '600', paddingHorizontal: 8, paddingTop: 6, lineHeight: 18 },
   cardAuthor: { fontSize: FontSize.caption, paddingHorizontal: 8, paddingBottom: 8, paddingTop: 2 },
   emptyText: { textAlign: 'center', marginTop: 40, fontSize: FontSize.body },
