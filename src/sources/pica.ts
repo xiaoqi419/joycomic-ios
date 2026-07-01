@@ -8,6 +8,8 @@ import { searchComics, comicDetail, comicEps, epPages } from '../pica/endpoints'
 import { thumbUrl } from '../pica/types';
 import { usePicaStore } from '../store/usePica';
 import { jmcomicSource } from './jmcomic';
+// 直接导入 JM API 避免 jmcomicSource 加载问题
+import { searchComics as jmSearch, getCoverUrl } from '../api/endpoints';
 
 function getPicaToken(): string {
   return usePicaStore.getState().token;
@@ -100,13 +102,27 @@ export async function aggregateSearch(
   const picaAuthed = getPicaToken().length > 0;
   jmLogger.log(`聚合搜索: q="${query}" page=${page} picaAuthed=${picaAuthed}`);
 
-  // JM 搜索
+  // JM 搜索（直接调 API 绕过 jmcomicSource 模块）
   let jmResult: { items: SourceItem[]; total: number; redirect_aid?: string };
   try {
-    jmResult = await jmcomicSource.search(query, page);
+    const res = await jmSearch({ search_query: query, page, o: 'tf' });
+    jmLogger.log(`聚合搜索: JM API返回 keys=${Object.keys(res || {}).join(',')}`);
+    if (res.redirect_aid) {
+      jmResult = { items: [], total: 0, redirect_aid: res.redirect_aid };
+    } else {
+      const items = (res.content || []).map((c: any) => ({
+        id: String(c.id || c.album_id),
+        title: c.name || c.title || '',
+        author: c.author?.name || (typeof c.author === 'string' ? c.author : ''),
+        coverUrl: getCoverUrl(String(c.id)),
+        categories: (c.tags || c.category || c.category_sub || []).map((t: any) => typeof t === 'string' ? t : t.name || t.tag || ''),
+        source: 'jmcomic' as const,
+      }));
+      jmResult = { items, total: Number(res.total) || items.length };
+    }
     jmLogger.log(`聚合搜索: JM结果 items=${jmResult.items.length} redirect=${jmResult.redirect_aid}`);
   } catch (e: any) {
-    jmLogger.err(`聚合搜索: JM失败 ${e?.message || e}`);
+    jmLogger.err(`聚合搜索: JM失败 ${e?.message || e} stack=${(e?.stack || '').slice(0, 200)}`);
     jmResult = { items: [], total: 0 };
   }
   // 有重定向时直接返回

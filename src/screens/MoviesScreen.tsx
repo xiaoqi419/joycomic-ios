@@ -51,17 +51,40 @@ export function MoviesScreen() {
   const { t } = useTranslation();
   const [movies, setMovies] = useState<MovieItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+
+  const loadMovies = async (p: number, append = false) => {
+    try {
+      const d = await fetchMovies({ page: p });
+      const list = d.list || [];
+      movieLog.log(`fetchMovies: page=${p} got ${list.length} items`);
+      if (append) {
+        setMovies((prev) => [...prev, ...list]);
+      } else {
+        setMovies(list);
+      }
+      setHasMore(list.length >= 20);
+    } catch (e: any) {
+      movieLog.err('fetchMovies: failed ' + (e?.message || e));
+    }
+  };
 
   useEffect(() => {
     movieLog.log('fetchMovies: start');
-    fetchMovies().then((d) => {
-      const list = d.list || [];
-      movieLog.log('fetchMovies: got ' + list.length + ' items');
-      setMovies(list);
-    }).catch((e: any) => {
-      movieLog.err('fetchMovies: failed ' + (e?.message || e));
-    }).finally(() => setLoading(false));
+    setLoading(true);
+    loadMovies(1).finally(() => setLoading(false));
   }, []);
+
+  const handleEndReached = async () => {
+    if (!hasMore || loadingMore) return;
+    setLoadingMore(true);
+    const next = page + 1;
+    await loadMovies(next, true);
+    setPage(next);
+    setLoadingMore(false);
+  };
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: Colors.background }}>
@@ -70,7 +93,10 @@ export function MoviesScreen() {
         numColumns={2}
         keyExtractor={(i) => i.id}
         contentContainerStyle={{ padding: Spacing.marginEdge, paddingBottom: 100 }}
+        onEndReached={handleEndReached}
+        onEndReachedThreshold={0.5}
         ListHeaderComponent={<Text style={{ fontSize: FontSize.largeTitle, fontWeight: '800', color: Colors.textPrimary, marginBottom: 14 }}>{t('movies.title')}</Text>}
+        ListFooterComponent={loadingMore ? <ActivityIndicator color={Colors.primary} style={{ marginVertical: 20 }} /> : null}
         renderItem={({ item }) => (
           <Pressable
             onPress={() => nav.navigate('MoviePlayer' as never, { vid: item.id, backlink: item.backlink, title: item.title, photo: item.photo } as never)}
