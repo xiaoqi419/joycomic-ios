@@ -2,13 +2,15 @@
 // 数据来源：fetchComments（分页评论列表）+ postComment（发布评论）
 // @author Jason
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   View, Text, FlatList, Pressable, TextInput,
   ActivityIndicator, StyleSheet, Keyboard, KeyboardAvoidingView,
-  Platform,
+  Platform, useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import RenderHtml from 'react-native-render-html';
 import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
 import { fetchComments, postComment } from '../api/endpoints';
@@ -16,16 +18,7 @@ import { useAppTheme } from '../theme';
 import { Spacing, FontSize, Radius } from '../theme';
 import type { CommentItem } from '../api/types';
 
-interface Props {
-  albumId: string;
-  /** 评论总数，用于标题显示 */
-  total?: number;
-}
-
-/** 渲染评论内容（HTML 转纯文本） */
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim();
-}
+type Props = NativeStackScreenProps<any, 'ComicComment'>;
 
 /** 时间显示 */
 function formatTime(addtime: string): string {
@@ -34,9 +27,12 @@ function formatTime(addtime: string): string {
   return addtime.slice(0, 16);
 }
 
-export function ComicCommentScreen({ albumId, total }: Props) {
-  const nav = useNavigation();
+export function ComicCommentScreen({ route, navigation }: Props) {
+  const { albumId, total } = route.params as { albumId: string; total?: number };
+  const nav = navigation || useNavigation();
   const { colors } = useAppTheme();
+  const { width: screenWidth } = useWindowDimensions();
+  const htmlContentWidth = useMemo(() => screenWidth - Spacing.marginEdge * 2 - 10 - 36 - 10, [screenWidth]);
 
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [page, setPage] = useState(1);
@@ -116,7 +112,17 @@ export function ComicCommentScreen({ albumId, total }: Props) {
   }, []);
 
   const renderComment = ({ item }: { item: CommentItem }) => {
-    const content = stripHtml(item.content);
+    const baseStyle = useMemo(() => ({
+      color: colors.onSurface,
+      fontSize: FontSize.body,
+      lineHeight: 20,
+    }), [colors.onSurface]);
+
+    const tagStyles = useMemo(() => ({
+      a: { color: colors.primary, textDecorationLine: 'underline' as const },
+      p: { marginVertical: 2 },
+    }), [colors.primary]);
+
     return (
       <View style={[css.commentItem, { borderBottomColor: colors.outlineVariant }]}>
         <View style={css.commentRow}>
@@ -136,7 +142,13 @@ export function ComicCommentScreen({ albumId, total }: Props) {
               <Text style={[css.username, { color: colors.primary }]}>{item.username}</Text>
               <Text style={[css.time, { color: colors.outline }]}>{formatTime(item.addtime)}</Text>
             </View>
-            <Text style={[css.commentContent, { color: colors.onSurface }]}>{content}</Text>
+            <RenderHtml
+              source={{ html: item.content }}
+              contentWidth={htmlContentWidth}
+              baseStyle={baseStyle}
+              tagsStyles={tagStyles}
+              enableExperimentalBRCollapsing
+            />
 
             {/* 回复列表 */}
             {item.replys && item.replys.length > 0 && (
@@ -146,9 +158,15 @@ export function ComicCommentScreen({ albumId, total }: Props) {
                     <Text style={[css.replyUser, { color: colors.primary }]}>
                       {reply.username}
                     </Text>
-                    <Text style={[css.replyContent, { color: colors.onSurface }]}>
-                      : {stripHtml(reply.content)}
-                    </Text>
+                    <View style={{ flex: 1 }}>
+                      <RenderHtml
+                        source={{ html: reply.content }}
+                        contentWidth={htmlContentWidth - 80}
+                        baseStyle={{ ...baseStyle, fontSize: FontSize.label }}
+                        tagsStyles={tagStyles}
+                        enableExperimentalBRCollapsing
+                      />
+                    </View>
                   </View>
                 ))}
               </View>
