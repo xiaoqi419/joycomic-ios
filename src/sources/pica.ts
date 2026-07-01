@@ -7,8 +7,6 @@ import { picaClient } from '../pica/client';
 import { searchComics, comicDetail, comicEps, epPages } from '../pica/endpoints';
 import { thumbUrl } from '../pica/types';
 import { usePicaStore } from '../store/usePica';
-import { jmcomicSource } from './jmcomic';
-// 直接导入 JM API 避免 jmcomicSource 加载问题
 import { searchComics as jmSearch, getCoverUrl } from '../api/endpoints';
 
 function getPicaToken(): string {
@@ -148,9 +146,11 @@ export async function aggregateSearch(
 }
 
 // 检查是否启用了 Pica 双源
+let _picaLoaded = false;
 export function isPicaEnabled(): boolean {
+  if (!_picaLoaded) {
+    _picaLoaded = true;
+    usePicaStore.getState().load();
+  }
   return getPicaToken().length > 0;
 }
-
-// 模块加载时异步恢复 Pica token
-usePicaStore.getState().load();

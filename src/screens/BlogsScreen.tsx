@@ -12,6 +12,7 @@ import { useLegacyColors, Radius, Spacing, FontSize } from '../theme';
 import { fetchBlogs, fetchBlogDetail, getCoverUrl as getCover } from '../api/endpoints';
 import type { BlogItem, ComicItem } from '../api/types';
 import { formatTime } from '../utils/helpers';
+import { HtmlText } from '../components/HtmlText';
 
 export function BlogsScreen() {
   const nav = useNavigation<any>();
@@ -75,7 +76,7 @@ export function BlogDetailScreen() {
         <View style={{ padding: Spacing.marginEdge }}>
           <Text style={{ fontSize: FontSize.title, fontWeight: '700', color: C.textPrimary }}>{blog.title}</Text>
           <Text style={{ color: C.textTertiary, fontSize: FontSize.caption, marginTop: 4 }}>{blog.author} · {formatTime(blog.addtime)}</Text>
-          <Text style={{ color: C.textSecondary, lineHeight: 22, marginTop: 12 }}>{content}</Text>
+          <HtmlText html={content} style={{ color: C.textSecondary, lineHeight: 22, marginTop: 12 }} linkColor={C.primary} />
 
           {related.length > 0 && (
             <View style={{ marginTop: 20 }}>

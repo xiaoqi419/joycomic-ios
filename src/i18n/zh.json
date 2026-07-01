@@ -56,7 +56,7 @@
     "read_rules": ["竖屏滚动", "横屏翻页"]
   },
   "reader": {
-    "page_progress": "%{current}/%{total}",
+    "page_progress": "{{current}}/{{total}}",
     "chapter": "章節",
     "prev_chapter": "上一章",
     "next_chapter": "下一章",
@@ -75,7 +75,7 @@
     "level": "等級",
     "sign_in": "每日簽到",
     "signed": "已簽到",
-    "sign_days": "已連續簽到 %{days} 天",
+    "sign_days": "已連續簽到 {{days}} 天",
     "achievements": "成就",
     "notifications": "通知",
     "my_comments": "我的評論",
@@ -117,7 +117,7 @@
     "by_creator": "按作者",
     "by_category": "按分類",
     "empty": "還沒有收藏",
-    "total": "共 %{n} 部"
+    "total": "共 {{n}} 部"
   },
   "forum": {
     "title": "論壇",

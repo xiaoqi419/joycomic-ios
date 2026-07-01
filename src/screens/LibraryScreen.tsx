@@ -2,7 +2,7 @@
 // @author nyx
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { View, Text, FlatList, Pressable, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, FlatList, Pressable, StyleSheet, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Image } from 'expo-image';
@@ -27,14 +27,20 @@ export function LibraryScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!loggedIn) {
+      Alert.alert('提示', '请先登录后再查看收藏', [
+        { text: '取消', onPress: () => nav.goBack() },
+        { text: '去登录', onPress: () => nav.navigate('Member') },
+      ]);
+      setLoading(false);
+      return;
+    }
     loadLocal();
-    if (loggedIn) {
-      fetchFavorites().then((d) => {
-        setOnline(d.list || []);
-        setFolders(d.folder_list || []);
-        setTotal(parseInt(d.total) || 0);
-      }).finally(() => setLoading(false));
-    } else setLoading(false);
+    fetchFavorites().then((d) => {
+      setOnline(d.list || []);
+      setFolders(d.folder_list || []);
+      setTotal(parseInt(d.total) || 0);
+    }).finally(() => setLoading(false));
   }, [loggedIn]);
 
   const items: any[] = loggedIn && online.length > 0 ? online : local;

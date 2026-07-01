@@ -56,7 +56,7 @@
     "read_rules": ["Vertical Scroll", "Horizontal Flip"]
   },
   "reader": {
-    "page_progress": "%{current}/%{total}",
+    "page_progress": "{{current}}/{{total}}",
     "chapter": "Chapter",
     "prev_chapter": "Prev",
     "next_chapter": "Next",
@@ -75,7 +75,7 @@
     "level": "Level",
     "sign_in": "Daily Check-in",
     "signed": "Checked in",
-    "sign_days": "%{days} day streak",
+    "sign_days": "{{days}} day streak",
     "achievements": "Achievements",
     "notifications": "Notifications",
     "my_comments": "My Comments",
@@ -117,7 +117,7 @@
     "by_creator": "By Creator",
     "by_category": "By Category",
     "empty": "No favorites yet",
-    "total": "%{n} items"
+    "total": "{{n}} items"
   },
   "forum": {
     "title": "Forum",

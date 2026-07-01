@@ -13,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { fetchWeekData, fetchWeekFilter, getCoverUrl } from '../api/endpoints';
+import { jmLogger } from '../utils/JmLogger';
 import { useAppTheme } from '../theme';
 import { Spacing, FontSize, Radius } from '../theme';
 import type { ComicItem } from '../api/types';
@@ -50,11 +51,6 @@ function toComicWrap(c: any): ComicWrap {
     image: c.image || '',
     tags: (c.tags || []).map((t: any) => typeof t === 'string' ? t : t.name || t.tag || ''),
   };
-}
-
-function coverUrl(item: ComicWrap): string {
-  if (item.image) return item.image;
-  return getCoverUrl(item.id);
 }
 
 const PAGE_SIZE = 36;
@@ -113,15 +109,15 @@ export function WeekRankScreen() {
     (async () => {
       try {
         const weekData: any = await fetchWeekData();
-        const cats: WeekCategory[] = (weekData.categories || []).map((c: any) => ({
-          id: String(c.id || c.key || ''),
-          title: c.title || c.name || c.tag_name || String(c.id || c.key || ''),
-          time: c.time || '',
-        }));
-        const types: WeekType[] = (weekData.type || weekData.types || []).map((t: any) => ({
-          id: String(t.id || t.key || ''),
-          title: t.title || t.name || String(t.id || t.key || ''),
-        }));
+        jmLogger.log(`WeekRank weekData keys=${Object.keys(weekData).join(',')} categories=${JSON.stringify(weekData.categories).slice(0, 800)} type=${JSON.stringify(weekData.type).slice(0, 400)}`);
+        const cats: WeekCategory[] = (weekData.categories || []).map((c: any) => {
+          const title = c.title || c.name || c.category_name || c.label || c.text || c.display || c.value || c.tag_name || c.key_name || '';
+          return { id: String(c.id || c.key || c.category_id || ''), title, time: c.time || '' };
+        });
+        const types: WeekType[] = (weekData.type || weekData.types || []).map((t: any) => {
+          const title = t.title || t.name || t.label || t.text || t.display || t.value || t.type_name || '';
+          return { id: String(t.id || t.key || t.type_id || ''), title };
+        });
         setMeta({ categories: cats, types });
 
         // 默认选中第一个 type
@@ -178,7 +174,7 @@ export function WeekRankScreen() {
     >
       <View style={css.cardInner}>
         <Image
-          source={{ uri: coverUrl(item) }}
+          source={{ uri: getCoverUrl(item.id) }}
           style={css.cover}
           contentFit="cover"
         />
@@ -261,30 +257,33 @@ export function WeekRankScreen() {
       )}
 
       {/* 列表 */}
-      {loading ? (
-        <View style={css.center}><ActivityIndicator size="large" color={colors.primary} /></View>
-      ) : (
-        <FlatList
-          data={list}
-          numColumns={3}
-          keyExtractor={(i) => i.id}
-          contentContainerStyle={css.listContent}
-          renderItem={renderItem}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-          }
-          onEndReached={onEndReached}
-          onEndReachedThreshold={0.3}
-          ListEmptyComponent={
-            <Text style={[css.emptyText, { color: colors.outline }]}>暂无数据</Text>
-          }
-          ListFooterComponent={
-            loadingMore ? (
-              <View style={css.footer}><ActivityIndicator size="small" color={colors.primary} /></View>
-            ) : null
-          }
-        />
-      )}
+      <View style={{ flex: 1 }}>
+        {loading ? (
+          <View style={css.center}><ActivityIndicator size="large" color={colors.primary} /></View>
+        ) : (
+          <FlatList
+            data={list}
+            numColumns={3}
+            keyExtractor={(i) => i.id}
+            contentContainerStyle={css.listContent}
+            renderItem={renderItem}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+            }
+            onEndReached={onEndReached}
+            onEndReachedThreshold={0.3}
+            columnWrapperStyle={css.columnWrapper}
+            ListEmptyComponent={
+              <Text style={[css.emptyText, { color: colors.outline }]}>暂无数据</Text>
+            }
+            ListFooterComponent={
+              loadingMore ? (
+                <View style={css.footer}><ActivityIndicator size="small" color={colors.primary} /></View>
+              ) : null
+            }
+          />
+        )}
+      </View>
 
       {/* 分类选择弹窗 */}
       <Modal visible={showCategoryModal} transparent animationType="fade">
@@ -334,7 +333,8 @@ const css = StyleSheet.create({
   divider: { height: 0.5, marginHorizontal: Spacing.marginEdge, marginBottom: 4 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   listContent: { paddingHorizontal: Spacing.marginEdge, paddingBottom: 100 },
-  cardOuter: { flex: 1, margin: 4, borderRadius: Radius.card, overflow: 'hidden', marginBottom: 12 },
+  columnWrapper: { gap: 8 },
+  cardOuter: { width: '30%', margin: 4, borderRadius: Radius.card, overflow: 'hidden', marginBottom: 12 },
   cardInner: { padding: 0 },
   cover: { width: '100%', aspectRatio: 0.7, backgroundColor: '#2C2C30' },
   cardTitle: { fontSize: FontSize.label, fontWeight: '600', paddingHorizontal: 8, paddingTop: 6, lineHeight: 18 },
