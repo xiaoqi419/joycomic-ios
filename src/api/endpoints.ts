@@ -300,7 +300,10 @@ export async function fetchLatestHanime(): Promise<{ id: string; photo: string; 
 }
 
 export async function fetchVideoDetail(vid: string): Promise<VideoDetailData> {
-  return encryptedGet<VideoDetailData>('video', { vid });
+  // 尝试多种参数名，某些域名/版本可能用 id 而非 vid
+  try { return await encryptedGet<VideoDetailData>('video', { vid }); } catch {}
+  try { return await encryptedGet<VideoDetailData>('video', { id: vid }); } catch {}
+  return { video: null as any, related_videos: [], videoSeries: [] };
 }
 
 export async function fetchNovels(page = 1): Promise<{ list: NovelItem[]; total: string }> {

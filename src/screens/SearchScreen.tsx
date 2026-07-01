@@ -1,7 +1,7 @@
 // 搜索页 v3 — 双源聚合搜索 (JMComic + Pica)
 // @author Jason
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View, Text, FlatList, TextInput, Pressable, StyleSheet, RefreshControl,
   ActivityIndicator, ScrollView, Dimensions,

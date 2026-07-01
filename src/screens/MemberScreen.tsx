@@ -169,14 +169,7 @@ export function MemberScreen() {
               </Pressable>
             </>
           ) : showJmLogin ? (
-            <JmLoginForm
-              userInput={jmUserInput}
-              passInput={jmPassInput}
-              loading={jmLoginLoading}
-              onUserChange={setJmUserInput}
-              onPassChange={setJmPassInput}
-              onSubmit={handleJmLogin}
-            />
+            <JmLoginForm />
           ) : (
             <>
               <Text style={{ color: C.textSecondary, fontSize: FontSize.body, marginBottom: 12 }}>
@@ -202,14 +195,7 @@ export function MemberScreen() {
               </Pressable>
             </>
           ) : showPicaLogin ? (
-            <PicaLoginForm
-              userInput={picaUserInput}
-              passInput={picaPassInput}
-              loading={picaLoginLoading}
-              onUserChange={setPicaUserInput}
-              onPassChange={setPicaPassInput}
-              onSubmit={handlePicaLogin}
-            />
+            <PicaLoginForm />
           ) : (
             <>
               <Text style={{ color: C.textSecondary, fontSize: FontSize.body, marginBottom: 12 }}>
@@ -401,19 +387,32 @@ const formStyles = StyleSheet.create({
   btnText: { color: '#fff', fontWeight: '700', fontSize: FontSize.bodyLarge },
 });
 
-const JmLoginForm = React.memo(function JmLoginForm({
-  userInput, passInput, loading, onUserChange, onPassChange, onSubmit,
-}: {
-  userInput: string; passInput: string; loading: boolean;
-  onUserChange: (v: string) => void; onPassChange: (v: string) => void; onSubmit: () => void;
-}) {
+const JmLoginForm = React.memo(function JmLoginForm() {
+  const [user, setUser] = useState('');
+  const [pass, setPass] = useState('');
+  const [loading, setLoading] = useState(false);
   const { t } = useTranslation();
   const nav = useNavigation<any>();
+
+  const handleLogin = async () => {
+    if (!user.trim() || !pass.trim()) return;
+    setLoading(true);
+    try {
+      const data = await jmLogin(user.trim(), pass.trim());
+      const storeLogin = useAuthStore.getState().login;
+      await storeLogin(data.username || user, data.s, data.photo || '');
+      Alert.alert('', `欢迎回来, ${data.username || user}`);
+    } catch (e: any) {
+      Alert.alert('登录失败', e.message || '请检查用户名和密码');
+    }
+    setLoading(false);
+  };
+
   return (
     <>
-      <TextInput key="jm-user" style={formStyles.input} placeholder="用户名" placeholderTextColor="#666" value={userInput} onChangeText={onUserChange} autoCapitalize="none" />
-      <TextInput key="jm-pass" style={formStyles.input} placeholder="密码" placeholderTextColor="#666" value={passInput} onChangeText={onPassChange} secureTextEntry />
-      <Pressable onPress={onSubmit} disabled={loading} style={formStyles.btn}>
+      <TextInput key="jm-user" style={formStyles.input} placeholder="用户名" placeholderTextColor="#666" value={user} onChangeText={setUser} autoCapitalize="none" />
+      <TextInput key="jm-pass" style={formStyles.input} placeholder="密码" placeholderTextColor="#666" value={pass} onChangeText={setPass} secureTextEntry />
+      <Pressable onPress={handleLogin} disabled={loading} style={formStyles.btn}>
         <Text style={formStyles.btnText}>{loading ? '...' : t('member.login')}</Text>
       </Pressable>
       <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 20, marginTop: 10 }}>
@@ -428,20 +427,32 @@ const JmLoginForm = React.memo(function JmLoginForm({
   );
 });
 
-const PicaLoginForm = React.memo(function PicaLoginForm({
-  userInput, passInput, loading, onUserChange, onPassChange, onSubmit,
-}: {
-  userInput: string; passInput: string; loading: boolean;
-  onUserChange: (v: string) => void; onPassChange: (v: string) => void; onSubmit: () => void;
-}) {
+const PicaLoginForm = React.memo(function PicaLoginForm() {
+  const [user, setUser] = useState('');
+  const [pass, setPass] = useState('');
+  const [loading, setLoading] = useState(false);
+  const picaLogin = usePicaStore((s) => s.login);
+
+  const handleLogin = async () => {
+    if (!user.trim() || !pass.trim()) return;
+    setLoading(true);
+    try {
+      await picaLogin(user.trim(), pass.trim());
+      Alert.alert('', 'Pica 账号已绑定');
+    } catch (e: any) {
+      Alert.alert('Pica 登录失败', e.message || '请检查用户名和密码');
+    }
+    setLoading(false);
+  };
+
   return (
     <>
       <Text style={{ color: '#aaa', fontSize: FontSize.body, marginBottom: 8 }}>
         绑定 Pica 账号后可搜到 Pica 源内容
       </Text>
-      <TextInput key="pica-user" style={formStyles.input} placeholder="Pica 邮箱" placeholderTextColor="#666" value={userInput} onChangeText={onUserChange} autoCapitalize="none" keyboardType="email-address" />
-      <TextInput key="pica-pass" style={formStyles.input} placeholder="Pica 密码" placeholderTextColor="#666" value={passInput} onChangeText={onPassChange} secureTextEntry />
-      <Pressable onPress={onSubmit} disabled={loading} style={formStyles.btn}>
+      <TextInput key="pica-user" style={formStyles.input} placeholder="Pica 邮箱" placeholderTextColor="#666" value={user} onChangeText={setUser} autoCapitalize="none" keyboardType="email-address" />
+      <TextInput key="pica-pass" style={formStyles.input} placeholder="Pica 密码" placeholderTextColor="#666" value={pass} onChangeText={setPass} secureTextEntry />
+      <Pressable onPress={handleLogin} disabled={loading} style={formStyles.btn}>
         <Text style={formStyles.btnText}>{loading ? '...' : '绑定'}</Text>
       </Pressable>
     </>

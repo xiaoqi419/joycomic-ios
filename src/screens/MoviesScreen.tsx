@@ -89,6 +89,44 @@ export function MoviesScreen() {
   );
 }
 
+// 注入 WebView: 拦截 fetch + 扫描 DOM 提取 video_src
+const EXTRACT_VIDEO_JS = `
+(function(){
+  function _log(m){ try{ window.ReactNativeWebView.postMessage(JSON.stringify({type:'log',msg:m})); }catch(e){} }
+  function _found(src){ try{ window.ReactNativeWebView.postMessage(JSON.stringify({type:'video_src',src:src})); }catch(e){} }
+  _log('extract: start');
+  // 拦截 fetch 找 video_src
+  var origFetch = window.fetch;
+  window.fetch = function(){
+    var url = arguments[0];
+    if(typeof url==='string' && !url.includes('video')) return origFetch.apply(this,arguments);
+    return origFetch.apply(this,arguments).then(function(r){
+      var c = r.clone();
+      c.text().then(function(t){
+        try{ var j=JSON.parse(t);
+          if(j&&j.data){
+            var vs=j.data.video_src||(j.data.video&&j.data.video.video_src);
+            if(vs){ _log('extract: fetch interceptor found video_src='+vs.slice(0,80)); _found(vs); }
+            var fu=j.data.full_url||(j.data.video&&j.data.video.full_url);
+            if(fu&&j.data.video_src){ var vs2=j.data.video_src; if(vs2){ _log('extract: via full_url fetch'); _found(vs2); } }
+          }
+        }catch(e){}
+      });
+      return r;
+    });
+  };
+  // 备用: 扫 DOM
+  function pollDOM(){
+    var v=document.querySelector('video');
+    if(v&&v.src&&!v.src.startsWith('blob:')&&v.src!==location.href){ _log('extract: DOM video.src='+v.src.slice(0,80)); _found(v.src); return; }
+    var s=document.querySelector('source');
+    if(s&&s.src&&!s.src.startsWith('blob:')){ _log('extract: DOM source='+s.src.slice(0,80)); _found(s.src); return; }
+    setTimeout(pollDOM,2000);
+  }
+  setTimeout(pollDOM,3000);
+})();
+`;
+
 export function MoviePlayerScreen() {
   const nav = useNavigation<any>();
   const route = useRoute<any>();
@@ -101,6 +139,7 @@ export function MoviePlayerScreen() {
   const [err, setErr] = useState('');
   const [useWebView, setUseWebView] = useState(false);
   const [nativeFailed, setNativeFailed] = useState(false);
+  const [scrapedSrc, setScrapedSrc] = useState<string | null>(null);
 
   useEffect(() => {
     movieLog.log('fetchVideoDetail: start vid=' + vid);
@@ -122,16 +161,38 @@ export function MoviePlayerScreen() {
           return;
         }
       }
-      movieLog.warn('fetchVideoDetail: API返回空, 走 WebView 兜底');
+      movieLog.warn('fetchVideoDetail: API返回空, 走 WebView 兜底 + JS注入抽源');
       setUseWebView(true);
       setVideo({ vid, title: route.params?.title, full_url: route.params?.backlink || `https://18comic.vip/video/${vid}` });
     }).catch((e: any) => {
       movieLog.err('fetchVideoDetail: failed ' + (e?.message || e));
-      movieLog.warn('fetchVideoDetail: 异常后走 WebView 兜底');
+      movieLog.warn('fetchVideoDetail: 异常后走 WebView 兜底 + JS注入抽源');
       setUseWebView(true);
       setVideo({ vid, title: route.params?.title, full_url: route.params?.backlink || `https://18comic.vip/video/${vid}` });
     }).finally(() => setLoading(false));
   }, [vid]);
+
+  // 从 WebView 提取到 video_src 后切原生播放
+  useEffect(() => {
+    if (scrapedSrc && video) {
+      movieLog.log('scrapedSrc: got src=' + scrapedSrc.slice(0, 80) + ' 切原生播放');
+      setVideo({ ...video, video_src: scrapedSrc });
+      setUseWebView(false);
+      setNativeFailed(false);
+    }
+  }, [scrapedSrc]);
+
+  const handleWebViewMessage = (e: any) => {
+    try {
+      const msg = JSON.parse(e.nativeEvent.data);
+      if (msg.type === 'video_src' && msg.src) {
+        movieLog.log('WebView.onMessage: got video_src=' + msg.src.slice(0, 80));
+        setScrapedSrc(msg.src);
+      } else if (msg.type === 'log') {
+        movieLog.log('WebView: ' + msg.msg);
+      }
+    } catch {}
+  };
 
   if (loading) return <LoadingScreen />;
   if (err) return <ErrorScreen msg={err} />;
@@ -166,6 +227,8 @@ export function MoviePlayerScreen() {
             style={{ flex: 1 }}
             onLoad={() => movieLog.log('WebView: loaded ' + fullUrl.slice(0, 60))}
             onError={(e: any) => movieLog.err('WebView: error ' + (e?.nativeEvent?.description || e?.message || JSON.stringify(e)))}
+            onMessage={handleWebViewMessage}
+            injectedJavaScript={EXTRACT_VIDEO_JS}
             javaScriptEnabled
             domStorageEnabled
             allowsInlineMediaPlayback
