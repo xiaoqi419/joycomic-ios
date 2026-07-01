@@ -2,6 +2,7 @@
 // @author Jason
 
 import type { ComicSource, SourceItem, SourceDetail, SourceChapter, SourceImage } from './types';
+import { jmLogger } from '../utils/JmLogger';
 import { picaClient } from '../pica/client';
 import { searchComics, comicDetail, comicEps, epPages } from '../pica/endpoints';
 import { thumbUrl } from '../pica/types';
@@ -95,31 +96,37 @@ export const picaSource: ComicSource = {
 export async function aggregateSearch(
   query: string,
   page = 1,
-): Promise<{ items: SourceItem[]; total: number }> {
+): Promise<{ items: SourceItem[]; total: number; redirect_aid?: string }> {
   const picaAuthed = getPicaToken().length > 0;
-  const { jmLogger } = require('../utils/JmLogger');
   jmLogger.log(`聚合搜索: q="${query}" page=${page} picaAuthed=${picaAuthed}`);
 
-  const promises: Promise<{ items: SourceItem[]; total: number }>[] = [
-    jmcomicSource.search(query, page),
-  ];
-
-  if (picaAuthed) {
-    promises.push(picaSource.search(query, page));
+  // JM 搜索
+  let jmResult: { items: SourceItem[]; total: number; redirect_aid?: string };
+  try {
+    jmResult = await jmcomicSource.search(query, page);
+    jmLogger.log(`聚合搜索: JM结果 items=${jmResult.items.length} redirect=${jmResult.redirect_aid}`);
+  } catch (e: any) {
+    jmLogger.err(`聚合搜索: JM失败 ${e?.message || e}`);
+    jmResult = { items: [], total: 0 };
+  }
+  // 有重定向时直接返回
+  if (jmResult.redirect_aid) {
+    return { items: [], total: 0, redirect_aid: jmResult.redirect_aid };
   }
 
-  const results = await Promise.allSettled(promises);
-  const items: SourceItem[] = [];
-
-  for (const r of results) {
-    if (r.status === 'fulfilled') {
-      jmLogger.log(`聚合搜索: 源结果 items=${r.value.items.length}`);
-      items.push(...r.value.items);
-    } else {
-      jmLogger.err(`聚合搜索: 源失败 ${r.reason?.message || r.reason}`);
+  // Pica 搜索
+  let picaItems: SourceItem[] = [];
+  if (picaAuthed) {
+    try {
+      const picaRes = await picaSource.search(query, page);
+      picaItems = picaRes.items;
+      jmLogger.log(`聚合搜索: Pica结果 items=${picaItems.length}`);
+    } catch (e: any) {
+      jmLogger.err(`聚合搜索: Pica失败 ${e?.message || e}`);
     }
   }
 
+  const items = [...jmResult.items, ...picaItems];
   jmLogger.log(`聚合搜索: 完成 total=${items.length}`);
   return { items, total: items.length };
 }

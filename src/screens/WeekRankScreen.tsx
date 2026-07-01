@@ -38,11 +38,18 @@ interface ComicWrap {
   name: string;
   author: string;
   image: string;
+  tags: string[];
 }
 
 /** 将 API ComicItem 归一化 */
 function toComicWrap(c: any): ComicWrap {
-  return { id: c.id, name: c.name, author: c.author || '', image: c.image || '' };
+  return {
+    id: c.id,
+    name: c.name,
+    author: c.author || '',
+    image: c.image || '',
+    tags: (c.tags || []).map((t: any) => typeof t === 'string' ? t : t.name || t.tag || ''),
+  };
 }
 
 const PAGE_SIZE = 36;
@@ -178,6 +185,13 @@ export function WeekRankScreen() {
             {item.author}
           </Text>
         ) : null}
+        {item.tags.length > 0 && (
+          <View style={css.tagRow}>
+            {item.tags.slice(0, 2).map((tag, i) => (
+              <Text key={i} style={[css.tag, { color: colors.outline }]} numberOfLines={1}>{tag}</Text>
+            ))}
+          </View>
+        )}
       </View>
     </Pressable>
   );
@@ -319,7 +333,9 @@ const css = StyleSheet.create({
   cardInner: { padding: 0 },
   cover: { width: '100%', aspectRatio: 0.7, backgroundColor: '#2C2C30' },
   cardTitle: { fontSize: FontSize.label, fontWeight: '600', paddingHorizontal: 8, paddingTop: 6, lineHeight: 18 },
-  cardAuthor: { fontSize: FontSize.caption, paddingHorizontal: 8, paddingBottom: 8, paddingTop: 2 },
+  cardAuthor: { fontSize: FontSize.caption, paddingHorizontal: 8, paddingBottom: 4, paddingTop: 2 },
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, paddingHorizontal: 8, paddingBottom: 8 },
+  tag: { fontSize: 10, backgroundColor: '#333', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, overflow: 'hidden' },
   emptyText: { textAlign: 'center', marginTop: 40, fontSize: FontSize.body },
   footer: { paddingVertical: 20 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },

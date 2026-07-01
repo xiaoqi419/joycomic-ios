@@ -15,7 +15,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLegacyColors, LegacyColors, Spacing, FontSize, Radius } from '../theme';
 import { ComicCard } from '../components/ComicCard';
-import { searchComics, fetchHotTags, fetchRandomRecommend, getCoverUrl as getCover } from '../api/endpoints';
+import { fetchHotTags, fetchRandomRecommend, getCoverUrl as getCover } from '../api/endpoints';
 import { aggregateSearch } from '../sources/pica';
 import { jmLogger } from '../utils/JmLogger';
 import type { SourceItem } from '../sources/types';
@@ -48,6 +48,7 @@ export function SearchScreen() {
   const [history, setHistory] = useState<string[]>([]);
   const [hotTags, setHotTags] = useState<string[]>([]);
   const [recommend, setRecommend] = useState<ComicItem[]>([]);
+  const searchingRef = useRef(false);
 
   useEffect(() => {
     AsyncStorage.getItem(HISTORY_KEY).then((json) => {
@@ -66,7 +67,7 @@ export function SearchScreen() {
   }, [routeParams?.query]);
 
   const doSearch = useCallback(async (q: string, p = 1, refresh = false) => {
-    if (!q.trim()) return;
+    if (!q.trim() || searchingRef.current) return;
 
     // 纯数字 → 直接跳到 JMComic 详情（兼容旧行为）
     if (/^\d{4,}$/.test(q.trim())) {
@@ -75,30 +76,26 @@ export function SearchScreen() {
       return;
     }
 
+    searchingRef.current = true;
     setLoading(true);
     jmLogger.log(`搜索: q="${q}" page=${p} sort=${sort}`);
 
     try {
-      // 页1 先检查 JMcomic 重定向
-      if (p === 1) {
-        const jmCheck = await searchComics({ search_query: q, page: 1, o: sort });
-        jmLogger.log(`搜索: 重定向检查 redirect_aid=${jmCheck.redirect_aid} total=${jmCheck.total} contentLen=${(jmCheck as any).content?.length || 0}`);
-        if (jmCheck.redirect_aid) {
-          nav.navigate('ComicDetail', { albumId: jmCheck.redirect_aid });
-          setLoading(false);
-          return;
-        }
+      // 双源聚合搜索（内含 JM 重定向检查）
+      const agg = await aggregateSearch(q, p);
+      jmLogger.log(`搜索: 聚合结果 items=${agg.items.length} total=${agg.total} redirect=${agg.redirect_aid}`);
+
+      // 重定向到详情
+      if (agg.redirect_aid) {
+        nav.navigate('ComicDetail', { albumId: agg.redirect_aid });
+        setLoading(false);
+        return;
       }
 
-      // 双源聚合搜索
-      const agg = await aggregateSearch(q, p);
-      const items = agg.items;
-      jmLogger.log(`搜索: 聚合结果 items=${items.length} total=${agg.total}`);
+      if (refresh || p === 1) setResults(agg.items);
+      else setResults((prev) => [...prev, ...agg.items]);
 
-      if (refresh || p === 1) setResults(items);
-      else setResults((prev) => [...prev, ...items]);
-
-      setHasMore(items.length >= 20);
+      setHasMore(agg.items.length >= 20);
       setSearched(true);
 
       // 写入历史
@@ -145,6 +142,7 @@ export function SearchScreen() {
             <View style={styles.searchWrap}>
               <MaterialIcons name="search" size={20} color={C.textTertiary} style={{ marginLeft: 12 }} />
               <TextInput
+                key="search-input"
                 style={styles.input}
                 placeholder={t('search.placeholder')}
                 placeholderTextColor={C.textTertiary}

@@ -30,11 +30,10 @@ export const jmcomicSource: ComicSource = {
   id: 'jmcomic',
   label: 'JMComic',
 
-  async search(query: string, page = 1): Promise<{ items: SourceItem[]; total: number }> {
+  async search(query: string, page = 1): Promise<{ items: SourceItem[]; total: number; redirect_aid?: string }> {
     const res = await searchComics({ search_query: query, page, o: 'tf' });
     if (res.redirect_aid) {
-      return { items: [], total: 0 };
-      // redirect 由调用方处理，不混入结果列表
+      return { items: [], total: 0, redirect_aid: res.redirect_aid };
     }
     const items = (res.content || []).map((c: any) =>
       toSourceItem(c, getCoverUrl(String(c.id)))

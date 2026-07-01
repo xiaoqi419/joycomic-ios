@@ -169,21 +169,14 @@ export function MemberScreen() {
               </Pressable>
             </>
           ) : showJmLogin ? (
-            <>
-              <TextInput key="jm-user" style={styles.input} placeholder="用户名" placeholderTextColor={C.textTertiary} value={jmUserInput} onChangeText={setJmUserInput} autoCapitalize="none" />
-              <TextInput key="jm-pass" style={styles.input} placeholder="密码" placeholderTextColor={C.textTertiary} value={jmPassInput} onChangeText={setJmPassInput} secureTextEntry />
-              <Pressable onPress={handleJmLogin} disabled={jmLoginLoading} style={styles.primaryBtn}>
-                <Text style={styles.primaryBtnText}>{jmLoginLoading ? '...' : t('member.login')}</Text>
-              </Pressable>
-              <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 20, marginTop: 10 }}>
-                <Pressable onPress={() => nav.navigate('Register' as never)}>
-                  <Text style={{ color: C.primary, fontSize: FontSize.body }}>{t('member.register')}</Text>
-                </Pressable>
-                <Pressable onPress={() => nav.navigate('ForgotPassword' as never)}>
-                  <Text style={{ color: C.primary, fontSize: FontSize.body }}>{t('member.forgot')}</Text>
-                </Pressable>
-              </View>
-            </>
+            <JmLoginForm
+              userInput={jmUserInput}
+              passInput={jmPassInput}
+              loading={jmLoginLoading}
+              onUserChange={setJmUserInput}
+              onPassChange={setJmPassInput}
+              onSubmit={handleJmLogin}
+            />
           ) : (
             <>
               <Text style={{ color: C.textSecondary, fontSize: FontSize.body, marginBottom: 12 }}>
@@ -209,16 +202,14 @@ export function MemberScreen() {
               </Pressable>
             </>
           ) : showPicaLogin ? (
-            <>
-              <Text style={{ color: C.textSecondary, fontSize: FontSize.body, marginBottom: 8 }}>
-                绑定 Pica 账号后可搜到 Pica 源内容
-              </Text>
-              <TextInput key="pica-user" style={styles.input} placeholder="Pica 邮箱" placeholderTextColor={C.textTertiary} value={picaUserInput} onChangeText={setPicaUserInput} autoCapitalize="none" keyboardType="email-address" />
-              <TextInput key="pica-pass" style={styles.input} placeholder="Pica 密码" placeholderTextColor={C.textTertiary} value={picaPassInput} onChangeText={setPicaPassInput} secureTextEntry />
-              <Pressable onPress={handlePicaLogin} disabled={picaLoginLoading} style={styles.primaryBtn}>
-                <Text style={styles.primaryBtnText}>{picaLoginLoading ? '...' : '绑定'}</Text>
-              </Pressable>
-            </>
+            <PicaLoginForm
+              userInput={picaUserInput}
+              passInput={picaPassInput}
+              loading={picaLoginLoading}
+              onUserChange={setPicaUserInput}
+              onPassChange={setPicaPassInput}
+              onSubmit={handlePicaLogin}
+            />
           ) : (
             <>
               <Text style={{ color: C.textSecondary, fontSize: FontSize.body, marginBottom: 12 }}>
@@ -403,3 +394,56 @@ function getStyles(C: LegacyColors) {
     statusText: { fontSize: FontSize.body, fontWeight: '600' },
   });
 }
+
+const formStyles = StyleSheet.create({
+  input: { height: 46, backgroundColor: '#1C1C1E', borderRadius: Radius.button, borderWidth: 1, borderColor: '#333', paddingHorizontal: 14, color: '#fff', marginBottom: 10, fontSize: FontSize.body },
+  btn: { backgroundColor: '#0af', padding: 14, borderRadius: Radius.button, alignItems: 'center', marginTop: 4 },
+  btnText: { color: '#fff', fontWeight: '700', fontSize: FontSize.bodyLarge },
+});
+
+const JmLoginForm = React.memo(function JmLoginForm({
+  userInput, passInput, loading, onUserChange, onPassChange, onSubmit,
+}: {
+  userInput: string; passInput: string; loading: boolean;
+  onUserChange: (v: string) => void; onPassChange: (v: string) => void; onSubmit: () => void;
+}) {
+  const { t } = useTranslation();
+  const nav = useNavigation<any>();
+  return (
+    <>
+      <TextInput key="jm-user" style={formStyles.input} placeholder="用户名" placeholderTextColor="#666" value={userInput} onChangeText={onUserChange} autoCapitalize="none" />
+      <TextInput key="jm-pass" style={formStyles.input} placeholder="密码" placeholderTextColor="#666" value={passInput} onChangeText={onPassChange} secureTextEntry />
+      <Pressable onPress={onSubmit} disabled={loading} style={formStyles.btn}>
+        <Text style={formStyles.btnText}>{loading ? '...' : t('member.login')}</Text>
+      </Pressable>
+      <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 20, marginTop: 10 }}>
+        <Pressable onPress={() => nav.navigate('Register' as never)}>
+          <Text style={{ color: '#0af', fontSize: FontSize.body }}>{t('member.register')}</Text>
+        </Pressable>
+        <Pressable onPress={() => nav.navigate('ForgotPassword' as never)}>
+          <Text style={{ color: '#0af', fontSize: FontSize.body }}>{t('member.forgot')}</Text>
+        </Pressable>
+      </View>
+    </>
+  );
+});
+
+const PicaLoginForm = React.memo(function PicaLoginForm({
+  userInput, passInput, loading, onUserChange, onPassChange, onSubmit,
+}: {
+  userInput: string; passInput: string; loading: boolean;
+  onUserChange: (v: string) => void; onPassChange: (v: string) => void; onSubmit: () => void;
+}) {
+  return (
+    <>
+      <Text style={{ color: '#aaa', fontSize: FontSize.body, marginBottom: 8 }}>
+        绑定 Pica 账号后可搜到 Pica 源内容
+      </Text>
+      <TextInput key="pica-user" style={formStyles.input} placeholder="Pica 邮箱" placeholderTextColor="#666" value={userInput} onChangeText={onUserChange} autoCapitalize="none" keyboardType="email-address" />
+      <TextInput key="pica-pass" style={formStyles.input} placeholder="Pica 密码" placeholderTextColor="#666" value={passInput} onChangeText={onPassChange} secureTextEntry />
+      <Pressable onPress={onSubmit} disabled={loading} style={formStyles.btn}>
+        <Text style={formStyles.btnText}>{loading ? '...' : '绑定'}</Text>
+      </Pressable>
+    </>
+  );
+});
