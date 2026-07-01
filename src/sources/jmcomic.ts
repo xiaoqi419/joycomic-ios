@@ -3,6 +3,7 @@
 
 import type { ComicSource, SourceItem, SourceDetail, SourceChapter, SourceImage } from './types';
 import { searchComics, fetchAlbumDetail, getCoverUrl } from '../api/endpoints';
+import { jmLogger } from '../utils/JmLogger';
 
 function toSourceItem(raw: any, coverUrl?: string): SourceItem {
   const category = raw.tags || raw.category || raw.category_sub || [];
@@ -31,14 +32,19 @@ export const jmcomicSource: ComicSource = {
   label: 'JMComic',
 
   async search(query: string, page = 1): Promise<{ items: SourceItem[]; total: number; redirect_aid?: string }> {
-    const res = await searchComics({ search_query: query, page, o: 'tf' });
-    if (res.redirect_aid) {
-      return { items: [], total: 0, redirect_aid: res.redirect_aid };
+    try {
+      const res = await searchComics({ search_query: query, page, o: 'tf' });
+      if (res.redirect_aid) {
+        return { items: [], total: 0, redirect_aid: res.redirect_aid };
+      }
+      const items = (res.content || []).map((c: any) =>
+        toSourceItem(c, getCoverUrl(String(c.id)))
+      );
+      return { items, total: Number(res.total) || items.length };
+    } catch (e: any) {
+      jmLogger.err(`jmcomicSource.search error: ${e?.message || e} stack=${(e?.stack || '').slice(0, 200)}`);
+      throw e;
     }
-    const items = (res.content || []).map((c: any) =>
-      toSourceItem(c, getCoverUrl(String(c.id)))
-    );
-    return { items, total: Number(res.total) || items.length };
   },
 
   async fetchDetail(albumId: string): Promise<SourceDetail> {

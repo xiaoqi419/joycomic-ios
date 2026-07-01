@@ -135,3 +135,6 @@ export async function aggregateSearch(
 export function isPicaEnabled(): boolean {
   return getPicaToken().length > 0;
 }
+
+// 模块加载时异步恢复 Pica token
+usePicaStore.getState().load();

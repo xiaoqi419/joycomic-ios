@@ -450,7 +450,7 @@ const PicaLoginForm = React.memo(function PicaLoginForm() {
       <Text style={{ color: '#aaa', fontSize: FontSize.body, marginBottom: 8 }}>
         绑定 Pica 账号后可搜到 Pica 源内容
       </Text>
-      <TextInput key="pica-user" style={formStyles.input} placeholder="Pica 邮箱" placeholderTextColor="#666" value={user} onChangeText={setUser} autoCapitalize="none" keyboardType="email-address" />
+      <TextInput key="pica-user" style={formStyles.input} placeholder="Pica 账号/邮箱" placeholderTextColor="#666" value={user} onChangeText={setUser} autoCapitalize="none" keyboardType="email-address" />
       <TextInput key="pica-pass" style={formStyles.input} placeholder="Pica 密码" placeholderTextColor="#666" value={pass} onChangeText={setPass} secureTextEntry />
       <Pressable onPress={handleLogin} disabled={loading} style={formStyles.btn}>
         <Text style={formStyles.btnText}>{loading ? '...' : '绑定'}</Text>

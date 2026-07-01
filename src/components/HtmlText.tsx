@@ -71,7 +71,8 @@ function decodeEntities(text: string): string {
 export function HtmlText({ html, style, linkColor, fontSize }: HtmlTextProps) {
   if (!html) return null;
 
-  const segs = tokenize(html);
+  const decodedHtml = decodeEntities(html);
+  const segs = tokenize(decodedHtml);
   const blocks: React.ReactNode[] = [];
   const fmtStack: { bold: boolean; italic: boolean; underline: boolean }[] = [{ bold: false, italic: false, underline: false }];
 
@@ -92,7 +93,7 @@ export function HtmlText({ html, style, linkColor, fontSize }: HtmlTextProps) {
 
   function flushText() {
     if (!textBuffer) return;
-    const txt = decodeEntities(textBuffer);
+    const txt = textBuffer;
     if (inLink && linkHref) {
       blocks.push(
         <Pressable key={`l-${blocks.length}`} onPress={() => Linking.openURL(linkHref)}>
@@ -186,7 +187,7 @@ export function HtmlText({ html, style, linkColor, fontSize }: HtmlTextProps) {
   flushText();
 
   if (blocks.length === 0) {
-    return <Text style={style}>{decodeEntities(html)}</Text>;
+    return <Text style={style}>{decodedHtml}</Text>;
   }
 
   return <Fragment>{blocks}</Fragment>;
