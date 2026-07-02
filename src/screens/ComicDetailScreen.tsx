@@ -111,7 +111,11 @@ export function ComicDetailScreen() {
 
       // 单章本：chId === albumId，从 detail.images 拿（album API 已有）
       if (chId === albumId && detail?.images?.length) {
-        images = detail.images.map((url: any) => typeof url === 'string' ? url : url.image || String(url));
+        images = detail.images.map((url: any) => {
+          let u = typeof url === 'string' ? url : url.image || String(url);
+          if (u && !u.includes('://')) u = `https://${host}/media/photos/${chId}/${u}`;
+          return u;
+        });
         jmLogger.log(`openChapter: 使用 detail.images chId=${chId} count=${images.length} [0]=${images[0]}`);
       } else {
         const data = await fetchComicRead(chId);

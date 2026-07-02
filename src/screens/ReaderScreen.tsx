@@ -169,17 +169,19 @@ export function ReaderScreen() {
   const renderVerticalItem = useCallback(({ item, index }: { item: string; index: number }) => {
     const picName = extractFilename(item);
     const store = useReaderStore.getState();
+    const h = imageHeights[index];
     return (
-      <Pressable key={index} onPress={toggleUI}>
-        <SafeImage
-          imageUrl={item}
-          epsId={store.chapterId || chapterId}
-          pictureName={picName}
-          containerWidth={W}
-          height={imageHeights[index]}
-          onDimension={(w, h) => handleDimension(index, w, h)}
-        />
-      </Pressable>
+      <View key={index} style={{ width: W, height: h || W * 1.4 }}>
+        <Pressable style={{ flex: 1 }} onPress={toggleUI}>
+          <SafeImage
+            imageUrl={item}
+            epsId={store.chapterId || chapterId}
+            pictureName={picName}
+            containerWidth={W}
+            onDimension={(w, imgH) => handleDimension(index, w, imgH)}
+          />
+        </Pressable>
+      </View>
     );
   }, [W, chapterId, imageHeights, handleDimension, toggleUI]);
 
