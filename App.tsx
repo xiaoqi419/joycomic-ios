@@ -207,8 +207,8 @@ export default function App() {
       : { colors: null };
     return (
       <SafeAreaProvider>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#121318' }}>
-          <ActivityIndicator size="large" color="#B8C7EF" />
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1A1210' }}>
+          <ActivityIndicator size="large" color="#FFB59F" />
         </View>
       </SafeAreaProvider>
     );
