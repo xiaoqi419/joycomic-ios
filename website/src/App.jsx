@@ -4,14 +4,14 @@ import './App.css';
 const APP_VERSION = '1.0.0';
 
 const FEATURES = [
-  { icon: '📚', title: '海量漫画', desc: '聚合 JMComic + Pica 双源，百万漫画任你翻阅' },
-  { icon: '🎨', title: '智能去混淆', desc: '自动还原百叶窗加密图片，原生级阅读体验' },
-  { icon: '📖', title: '双模式阅读', desc: '竖滑无限滚动 + 分页翻页，随心切换' },
-  { icon: '⬇️', title: '离线下载', desc: '一键下载整本漫画，没网也能看' },
-  { icon: '📂', title: '文件夹管理', desc: '创建收藏文件夹，分类整理你的最爱' },
-  { icon: '🌐', title: '双源搜索', desc: '同时搜索 JMComic 与 Pica，找到最多资源' },
-  { icon: '🎬', title: '影视 & 小说', desc: '内置影视播放与小说阅读，一站式娱乐' },
-  { icon: '🌙', title: '深色主题', desc: 'Material 3 设计，护眼暗色模式' },
+  { icon: 'books', title: '海量漫画', desc: '聚合 JMComic + Pica 双源，百万漫画任你翻阅' },
+  { icon: 'shuffle', title: '智能去混淆', desc: '自动还原百叶窗加密图片，原生级阅读体验' },
+  { icon: 'read', title: '双模式阅读', desc: '竖滑无限滚动 + 分页翻页，随心切换' },
+  { icon: 'download', title: '离线下载', desc: '一键下载整本漫画，没网也能看' },
+  { icon: 'folder', title: '文件夹管理', desc: '创建收藏文件夹，分类整理你的最爱' },
+  { icon: 'search', title: '双源搜索', desc: '同时搜索 JMComic 与 Pica，找到最多资源' },
+  { icon: 'media', title: '影视 & 小说', desc: '内置影视播放与小说阅读，一站式娱乐' },
+  { icon: 'moon', title: '深色主题', desc: 'Material 3 设计，护眼暗色模式' },
 ];
 
 const CHANGELOG = [
@@ -55,7 +55,7 @@ function App() {
             <span className="hero-gradient">JOYComic</span>
           </h1>
           <p className="hero-subtitle">
-            聚合双源 · 畅享漫画 · 全功能 iOS/Android 客户端
+            聚合双源 · 畅享漫画 · 全功能 iOS 客户端
           </p>
           <p className="hero-desc">
             基于 Expo/React Native 构建，Material 3 设计，支持 JMComic + Pica 双数据源聚合搜索，
@@ -87,7 +87,16 @@ function App() {
         <div className="features-grid">
           {FEATURES.map((f, i) => (
             <div key={i} className="feature-card" style={{ '--i': i }}>
-              <div className="feature-icon">{f.icon}</div>
+              <div className="feature-icon">
+                {f.icon === 'books' && <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15z"/></svg>}
+                {f.icon === 'shuffle' && <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/></svg>}
+                {f.icon === 'read' && <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>}
+                {f.icon === 'download' && <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>}
+                {f.icon === 'folder' && <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>}
+                {f.icon === 'search' && <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>}
+                {f.icon === 'media' && <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>}
+                {f.icon === 'moon' && <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>}
+              </div>
               <h3>{f.title}</h3>
               <p>{f.desc}</p>
             </div>
@@ -136,7 +145,8 @@ function App() {
           <p>选择你的平台，开始畅快阅读</p>
         </div>
         <div className="download-cards">
-          <div className="download-card">
+          <div className="download-card featured">
+            <div className="download-badge">推荐</div>
             <div className="download-icon">
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
             </div>
@@ -148,21 +158,6 @@ function App() {
             </div>
             <a href="https://github.com/xiaoqi419/jmcomic-ios/releases" target="_blank" rel="noreferrer" className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
               下载 IPA
-            </a>
-          </div>
-          <div className="download-card featured">
-            <div className="download-badge">推荐</div>
-            <div className="download-icon">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-            </div>
-            <h3>Android 版本</h3>
-            <p>Android 6.0+ · APK 安装</p>
-            <div className="download-meta">
-              <span>v{APP_VERSION}</span>
-              <span>~28 MB</span>
-            </div>
-            <a href="https://github.com/xiaoqi419/jmcomic-ios/releases" target="_blank" rel="noreferrer" className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
-              下载 APK
             </a>
           </div>
           <div className="download-card">
