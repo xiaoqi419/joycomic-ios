@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { WebView } from 'react-native-webview';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { buildDescrambleHtml, buildSimpleImageHtml, extractFilename } from '../utils/scramble';
 import { jmLogger } from '../utils/JmLogger';
 
