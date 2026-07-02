@@ -14,6 +14,7 @@ import { usePicaStore } from '../store/usePica';
 import { useMemberStore } from '../store/useMember';
 import { useSettingsStore } from '../store/useSettings';
 import { login as jmLogin } from '../api/endpoints';
+import { userProfile as picaProfile, punchIn as picaPunch } from '../pica/endpoints';
 import { isPicaEnabled } from '../sources/pica';
 
 export function MemberScreen() {
@@ -22,7 +23,7 @@ export function MemberScreen() {
   const C = useLegacyColors();
   const styles = useMemo(() => getStyles(C), [C]);
   const { username: jmUser, loggedIn: jmLoggedIn, login: jmDoLogin, logout: jmDoLogout } = useAuthStore();
-  const { username: picaUser, loggedIn: picaLoggedIn, login: picaDoLogin, logout: picaDoLogout } = usePicaStore();
+  const { username: picaUser, loggedIn: picaLoggedIn, login: picaDoLogin, logout: picaDoLogout, apiSource: picaApiSource, setApiSource: setPicaApiSource } = usePicaStore();
   const { info, signData, signed, doSignIn, loadInfo, loadSign, loadAchievements, achievements, notifications, loadNotifications, unread } = useMemberStore();
   const { language, setLanguage, readingMode, setReadingMode, showDebugLog, setShowDebugLog, theme, setTheme, shunts, selectedShuntKey, selectShunt, prefetchCount, setPrefetchCount } = useSettingsStore();
 
@@ -227,6 +228,25 @@ export function MemberScreen() {
               </Pressable>
             </>
           )}
+        </Section>
+
+        {/* ===== Pica API 源 ===== */}
+        <Section title="Pica API 源" icon="cloud">
+          <Row label="服务器" right={
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {(['go2778', 'picacomic'] as const).map((s) => (
+                <Pressable
+                  key={s}
+                  onPress={() => setPicaApiSource(s)}
+                  style={[styles.toggleBtn, picaApiSource === s && styles.toggleBtnActive]}
+                >
+                  <Text style={[styles.toggleText, picaApiSource === s && styles.toggleTextActive]}>
+                    {s === 'go2778' ? '中转' : '直连'}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          } />
         </Section>
 
         {/* ===== 搜索源状态 ===== */}
@@ -462,14 +482,6 @@ const JmLoginForm = React.memo(function JmLoginForm() {
       <Pressable onPress={handleLogin} disabled={loading} style={formStyles.btn}>
         <Text style={formStyles.btnText}>{loading ? '...' : t('member.login')}</Text>
       </Pressable>
-      <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 20, marginTop: 10 }}>
-        <Pressable onPress={() => nav.navigate('Register' as never)}>
-          <Text style={{ color: '#0af', fontSize: FontSize.body }}>{t('member.register')}</Text>
-        </Pressable>
-        <Pressable onPress={() => nav.navigate('ForgotPassword' as never)}>
-          <Text style={{ color: '#0af', fontSize: FontSize.body }}>{t('member.forgot')}</Text>
-        </Pressable>
-      </View>
     </>
   );
 });
@@ -486,6 +498,14 @@ const PicaLoginForm = React.memo(function PicaLoginForm() {
     try {
       await picaLogin(user.trim(), pass.trim());
       Alert.alert('', 'Pica 账号已绑定');
+      // 自动签到
+      try {
+        const profile = await picaProfile();
+        const u = (profile as any).user || profile;
+        if (!u.isPunched) {
+          await picaPunch();
+        }
+      } catch {}
     } catch (e: any) {
       Alert.alert('Pica 登录失败', e.message || '请检查用户名和密码');
     }
