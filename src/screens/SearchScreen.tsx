@@ -115,17 +115,17 @@ export function SearchScreen() {
             const picaRes = await picaSource.search(q, p);
             jmLogger.log(`搜索: pica 返回 items=${picaRes.items.length}`);
             picaItems = picaRes.items;
-          } catch (pe: any) {
+          } catch (pe) {
             jmLogger.err(`搜索: pica 失败 ${pe?.message || pe}`);
           }
         }
         agg = { items: [...jmItems, ...picaItems], total: jmItems.length + picaItems.length };
       }
-    } catch (e: any) {
+    } catch (e) {
       jmLogger.err(`搜索内联失败: ${e?.message || e} stack=${(e?.stack || '').slice(0, 300)}`);
       agg = { items: [], total: 0 };
     }
-      jmLogger.log(`搜索: 聚合结果 items=${agg.items.length} total=${agg.total} redirect=${agg.redirect_aid}`);
+    jmLogger.log(`搜索: 聚合结果 items=${agg.items.length} total=${agg.total} redirect=${agg.redirect_aid}`);
 
       // 重定向到详情
       if (agg.redirect_aid) {
@@ -153,7 +153,7 @@ export function SearchScreen() {
         setHistory(newHistory);
         AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
       }
-    } catch (e: any) {
+    } catch (e) {
       jmLogger.err(`搜索: 异常 ${e?.message || e}`);
     }
     setLoading(false);
