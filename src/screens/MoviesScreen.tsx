@@ -1,10 +1,10 @@
-// 视频 v4 — expo-av Video 原生播放 (HLS/mp4) + WebView 兜底
+// 视频 v5 — 分类 Tabs + 搜索
 // @author Jason
 
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import {
   View, Text, FlatList, Pressable, ActivityIndicator, Dimensions,
-  Linking, StyleSheet, RefreshControl,
+  Linking, StyleSheet, RefreshControl, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -24,20 +24,36 @@ const movieLog = jmLogger;
 const { width: W } = Dimensions.get('window');
 const CARD_W = (W - Spacing.marginEdge * 2 - 10) / 2;
 
+const VIDEO_TABS = [
+  { key: '', label: '全部' },
+  { key: 'movie', label: '小電影' },
+  { key: 'hanime', label: 'H動漫' },
+  { key: 'cos', label: 'Cos' },
+] as const;
+
+function getVideoType(tabKey: string): string | undefined {
+  if (!tabKey) return undefined;
+  // H動漫 和 Cos 都走 video, 但用 searchQuery 区分
+  if (tabKey === 'hanime' || tabKey === 'cos') return 'video';
+  return tabKey;
+}
+
+function getSearchQuery(tabKey: string): string | undefined {
+  if (tabKey === 'hanime') return 'H動漫';
+  if (tabKey === 'cos') return 'Cos';
+  return undefined;
+}
+
 function AuthImage({ uri }: { uri: string }) {
   const [dataUri, setDataUri] = useState<string | null>(null);
   const fullUri = uri.startsWith('http') ? uri : `https://${getImgHost()}/${uri.replace(/^\//, '')}`;
   useEffect(() => {
     let cancelled = false;
-    if (!uri) { movieLog.warn('AuthImage: empty uri'); return; }
-    movieLog.log('AuthImage: fetching ' + fullUri.slice(0, 80));
+    if (!uri) return;
     fetchImageAsDataUri(fullUri).then((d) => {
       if (cancelled) return;
-      if (d) { movieLog.log('AuthImage: success ' + d.slice(0, 40)); setDataUri(d); }
-      else { movieLog.warn('AuthImage: returned null for ' + fullUri.slice(0, 80)); }
-    }).catch((e: any) => {
-      movieLog.err('AuthImage: failed ' + fullUri.slice(0, 80) + ' ' + (e?.message || e));
-    });
+      if (d) setDataUri(d);
+    }).catch(() => {});
     return () => { cancelled = true; };
   }, [fullUri]);
   if (!dataUri) return <View style={{ width: CARD_W, height: CARD_W * 0.75, borderRadius: Radius.sm, backgroundColor: Colors.surfaceContainer }} />;
@@ -49,18 +65,26 @@ function AuthImage({ uri }: { uri: string }) {
 export function MoviesScreen() {
   const nav = useNavigation<any>();
   const { t } = useTranslation();
+  const route = useRoute<any>();
   const [movies, setMovies] = useState<MovieItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [tab, setTab] = useState(route.params?.tab || '');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
 
-  const loadMovies = async (p: number, append = false) => {
+  const loadMovies = useCallback(async (p: number, append = false) => {
     try {
-      const d = await fetchMovies({ page: p });
+      const vt = getVideoType(tab);
+      const sq = searchQuery || getSearchQuery(tab);
+      const params: any = { page: p };
+      if (vt) params.videoType = vt;
+      if (sq) params.searchQuery = sq;
+      const d = await fetchMovies(params);
       const list = d.list || [];
-      movieLog.log(`fetchMovies: page=${p} got ${list.length} items`);
       if (append) {
         setMovies((prev) => [...prev, ...list]);
       } else {
@@ -70,28 +94,34 @@ export function MoviesScreen() {
     } catch (e: any) {
       movieLog.err('fetchMovies: failed ' + (e?.message || e));
     }
-  };
+  }, [tab, searchQuery]);
 
   useEffect(() => {
-    movieLog.log('fetchMovies: start');
     setLoading(true);
+    setPage(1);
     loadMovies(1).finally(() => setLoading(false));
-  }, []);
+  }, [tab]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     setPage(1);
     await loadMovies(1);
     setRefreshing(false);
-  }, []);
+  }, [loadMovies]);
 
-  const handleEndReached = async () => {
+  const handleEndReached = useCallback(async () => {
     if (!hasMore || loadingMore) return;
     setLoadingMore(true);
     const next = page + 1;
     await loadMovies(next, true);
     setPage(next);
     setLoadingMore(false);
+  }, [hasMore, loadingMore, page, loadMovies]);
+
+  const handleSearch = () => {
+    if (!searchQuery.trim()) return;
+    setPage(1);
+    loadMovies(1).then(() => setShowSearch(false));
   };
 
   return (
@@ -104,7 +134,64 @@ export function MoviesScreen() {
         contentContainerStyle={{ padding: Spacing.marginEdge, paddingBottom: 100 }}
         onEndReached={handleEndReached}
         onEndReachedThreshold={0.5}
-        ListHeaderComponent={<Text style={{ fontSize: FontSize.largeTitle, fontWeight: '800', color: Colors.textPrimary, marginBottom: 14 }}>{t('movies.title')}</Text>}
+        ListHeaderComponent={
+          <View>
+            {/* 标题 + 搜索按钮 */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <Text style={{ fontSize: FontSize.largeTitle, fontWeight: '800', color: Colors.textPrimary }}>
+                {t('movies.title')}
+              </Text>
+              <Pressable onPress={() => setShowSearch(!showSearch)} hitSlop={8}>
+                <MaterialIcons name={showSearch ? 'close' : 'search'} size={24} color={Colors.primary} />
+              </Pressable>
+            </View>
+
+            {/* 搜索框 */}
+            {showSearch && (
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+                <TextInput
+                  style={{
+                    flex: 1, height: 40, backgroundColor: Colors.surface, borderRadius: Radius.sm,
+                    paddingHorizontal: 12, color: Colors.textPrimary, fontSize: FontSize.body,
+                    borderWidth: 1, borderColor: Colors.border,
+                  }}
+                  placeholder="搜索视频..."
+                  placeholderTextColor={Colors.textTertiary}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  onSubmitEditing={handleSearch}
+                  returnKeyType="search"
+                  autoFocus
+                />
+                <Pressable onPress={handleSearch} style={{
+                  width: 40, height: 40, borderRadius: Radius.sm, backgroundColor: Colors.primary,
+                  justifyContent: 'center', alignItems: 'center',
+                }}>
+                  <MaterialIcons name="search" size={20} color="#fff" />
+                </Pressable>
+              </View>
+            )}
+
+            {/* 分类 Tabs */}
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+              {VIDEO_TABS.map((vt) => (
+                <Pressable
+                  key={vt.key}
+                  onPress={() => { setTab(vt.key); setSearchQuery(''); setShowSearch(false); }}
+                  style={[
+                    S.tabChip,
+                    tab === vt.key && S.tabChipActive,
+                  ]}
+                >
+                  <Text style={[
+                    S.tabText,
+                    tab === vt.key && S.tabTextActive,
+                  ]}>{vt.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        }
         ListFooterComponent={loadingMore ? <ActivityIndicator color={Colors.primary} style={{ marginVertical: 20 }} /> : null}
         renderItem={({ item }) => (
           <Pressable
@@ -124,13 +211,13 @@ export function MoviesScreen() {
   );
 }
 
-// 注入 WebView: 拦截 fetch + 扫描 DOM 提取 video_src
+// ========== Movie Player (unchanged) ==========
+
 const EXTRACT_VIDEO_JS = `
 (function(){
   function _log(m){ try{ window.ReactNativeWebView.postMessage(JSON.stringify({type:'log',msg:m})); }catch(e){} }
   function _found(src){ try{ window.ReactNativeWebView.postMessage(JSON.stringify({type:'video_src',src:src})); }catch(e){} }
   _log('extract: start');
-  // 拦截 fetch 找 video_src
   var origFetch = window.fetch;
   window.fetch = function(){
     var url = arguments[0];
@@ -150,7 +237,6 @@ const EXTRACT_VIDEO_JS = `
       return r;
     });
   };
-  // 备用: 扫 DOM
   function pollDOM(){
     var v=document.querySelector('video');
     if(v&&v.src&&!v.src.startsWith('blob:')&&v.src!==location.href){ _log('extract: DOM video.src='+v.src.slice(0,80)); _found(v.src); return; }
@@ -177,40 +263,22 @@ export function MoviePlayerScreen() {
   const [scrapedSrc, setScrapedSrc] = useState<string | null>(null);
 
   useEffect(() => {
-    movieLog.log('fetchVideoDetail: start vid=' + vid);
     fetchVideoDetail(vid).then((d: any) => {
-      movieLog.log('fetchVideoDetail: typeof d=' + typeof d + ' keys=' + Object.keys(d || {}).join(','));
-      const raw = JSON.stringify(d || {}).slice(0, 500);
-      movieLog.log('fetchVideoDetail: raw=' + raw);
       const v = d?.video || d;
       if (v && Object.keys(v).length > 0) {
-        movieLog.log('fetchVideoDetail: v keys=' + Object.keys(v).join(','));
-        movieLog.log('fetchVideoDetail: video_src=' + (v?.video_src?.slice(0, 80) || '(none)'));
-        movieLog.log('fetchVideoDetail: full_url=' + (v?.full_url?.slice(0, 80) || '(none)'));
-        movieLog.log('fetchVideoDetail: title=' + (v?.title || '(none)'));
-        movieLog.log('fetchVideoDetail: photo=' + (v?.photo?.slice(0, 60) || '(none)'));
-        movieLog.log('fetchVideoDetail: view=' + v?.view + ' factory=' + v?.factory);
         setVideo(v);
-        if (v?.video_src) {
-          movieLog.log('fetchVideoDetail: will use native player with src=' + v.video_src);
-          return;
-        }
+        if (v?.video_src) return;
       }
-      movieLog.warn('fetchVideoDetail: API返回空, 走 WebView 兜底 + JS注入抽源');
       setUseWebView(true);
       setVideo({ vid, title: route.params?.title, full_url: route.params?.backlink || `https://18comic.vip/video/${vid}` });
-    }).catch((e: any) => {
-      movieLog.err('fetchVideoDetail: failed ' + (e?.message || e));
-      movieLog.warn('fetchVideoDetail: 异常后走 WebView 兜底 + JS注入抽源');
+    }).catch(() => {
       setUseWebView(true);
       setVideo({ vid, title: route.params?.title, full_url: route.params?.backlink || `https://18comic.vip/video/${vid}` });
     }).finally(() => setLoading(false));
   }, [vid]);
 
-  // 从 WebView 提取到 video_src 后切原生播放
   useEffect(() => {
     if (scrapedSrc && video) {
-      movieLog.log('scrapedSrc: got src=' + scrapedSrc.slice(0, 80) + ' 切原生播放');
       setVideo({ ...video, video_src: scrapedSrc });
       setUseWebView(false);
       setNativeFailed(false);
@@ -220,12 +288,7 @@ export function MoviePlayerScreen() {
   const handleWebViewMessage = (e: any) => {
     try {
       const msg = JSON.parse(e.nativeEvent.data);
-      if (msg.type === 'video_src' && msg.src) {
-        movieLog.log('WebView.onMessage: got video_src=' + msg.src.slice(0, 80));
-        setScrapedSrc(msg.src);
-      } else if (msg.type === 'log') {
-        movieLog.log('WebView: ' + msg.msg);
-      }
+      if (msg.type === 'video_src' && msg.src) setScrapedSrc(msg.src);
     } catch {}
   };
 
@@ -237,13 +300,12 @@ export function MoviePlayerScreen() {
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: '#000' }}>
-      {/* 顶栏 */}
       <View style={S.topBar}>
         <Pressable onPress={() => nav.goBack()}><MaterialIcons name="arrow-back" size={24} color="#fff" /></Pressable>
         <Text style={S.titleText} numberOfLines={1}>{video.title}</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           {video.video_src && (
-            <Pressable onPress={() => { movieLog.log('toggle mode ' + (useWebView ? '→native' : '→webview')); setUseWebView((v) => !v); }} hitSlop={8}>
+            <Pressable onPress={() => setUseWebView((v) => !v)} hitSlop={8}>
               <MaterialIcons name={useWebView ? 'videocam' : 'web'} size={22} color={Colors.primary} />
             </Pressable>
           )}
@@ -252,16 +314,12 @@ export function MoviePlayerScreen() {
           </Pressable>
         </View>
       </View>
-
-      {/* 播放器区域 */}
       <View style={S.playerWrap}>
         {useWebView || nativeFailed ? (
           <WebView
             key={fullUrl}
             source={{ uri: fullUrl }}
             style={{ flex: 1 }}
-            onLoad={() => movieLog.log('WebView: loaded ' + fullUrl.slice(0, 60))}
-            onError={(e: any) => movieLog.err('WebView: error ' + (e?.nativeEvent?.description || e?.message || JSON.stringify(e)))}
             onMessage={handleWebViewMessage}
             injectedJavaScript={EXTRACT_VIDEO_JS}
             javaScriptEnabled
@@ -280,7 +338,7 @@ export function MoviePlayerScreen() {
               resizeMode={ResizeMode.CONTAIN}
               shouldPlay
               useNativeControls
-              onError={(e) => { movieLog.err('Video.onError ' + JSON.stringify(e)); setNativeFailed(true); }}
+              onError={() => setNativeFailed(true)}
             />
             {nativeFailed && (
               <View style={S.fallbackOverlay}>
@@ -293,8 +351,6 @@ export function MoviePlayerScreen() {
           </>
         )}
       </View>
-
-      {/* 信息 */}
       <View style={{ padding: Spacing.marginEdge }}>
         <Text style={{ color: '#fff', fontSize: FontSize.headline, fontWeight: '700', marginBottom: 6 }}>{video.title}</Text>
         {video.view ? <Text style={{ color: '#aaa', fontSize: FontSize.body }}>{t('movies.views', { count: video.view })}</Text> : null}
@@ -360,4 +416,11 @@ const S = StyleSheet.create({
   },
   tag: { backgroundColor: Colors.surfaceContainer, paddingHorizontal: 12, paddingVertical: 5, borderRadius: Radius.chip },
   tagText: { color: Colors.textTertiary, fontSize: FontSize.caption },
+  tabChip: {
+    paddingHorizontal: 16, paddingVertical: 8, borderRadius: Radius.xl,
+    backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border,
+  },
+  tabChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  tabText: { fontSize: FontSize.label, fontWeight: '600', color: Colors.textSecondary },
+  tabTextActive: { color: '#fff' },
 });
