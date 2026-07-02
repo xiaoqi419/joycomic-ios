@@ -57,7 +57,11 @@ export const picaSource: ComicSource = {
     if (!authed) return { items: [], total: 0 };
     try {
       const res = await searchComics(query, page);
-      return { items: res.docs.map(toSourceItem), total: res.total };
+      // 响应结构: { comics: { docs: [...], total, pages } }
+      const data = (res as any).comics || res;
+      const docs = Array.isArray(data) ? data : (data.docs || []);
+      const total = typeof data.total === 'number' ? data.total : docs.length;
+      return { items: docs.map(toSourceItem), total };
     } catch {
       return { items: [], total: 0 };
     }
@@ -65,7 +69,9 @@ export const picaSource: ComicSource = {
 
   async fetchDetail(id: string): Promise<SourceDetail> {
     await ensureAuth();
-    const info = await comicDetail(id);
+    const res = await comicDetail(id);
+    // 响应结构: { comic: { ... } }
+    const info = (res as any).comic || res;
     const item = toSourceItem(info);
     const chapters = await this.fetchChapters(id);
     return {
@@ -79,14 +85,19 @@ export const picaSource: ComicSource = {
   async fetchChapters(id: string): Promise<SourceChapter[]> {
     await ensureAuth();
     const eps = await comicEps(id);
-    return eps.docs.map(toSourceChapter);
+    // 响应结构: { eps: { docs: [...] } }
+    const docs = (eps as any).eps?.docs || (eps as any).docs || [];
+    return docs.map(toSourceChapter);
   },
 
-  async fetchImages(_comicId: string, chapterOrder: number): Promise<SourceImage[]> {
+  async fetchImages(comicId: string, chapterOrder: number): Promise<SourceImage[]> {
     await ensureAuth();
-    const pages = await epPages(String(chapterOrder));
-    return pages.docs.map((p, i) => ({
-      url: imageUrl(p.media),
+    // epPages 需要 comicId 和 order，而非 epId
+    const res = await epPages(comicId, chapterOrder);
+    // 响应结构: { pages: { docs: [{ media: { fileServer, path } }] } }
+    const docs = (res as any).pages?.docs || (res as any).docs || [];
+    return docs.map((p: any, i: number) => ({
+      url: p.media ? `${p.media.fileServer}/static/${p.media.path}` : '',
       index: i,
     }));
   },

@@ -1,4 +1,5 @@
 // Pica — HTTP 客户端（支持自动重连 & 签名）
+// 参考 PicaComic (https://github.com/Pacalini/PicaComic) 实现
 // @author Jason
 
 import { buildHeaders } from './crypto';
@@ -17,16 +18,13 @@ class PicaHttpClient {
 
   private async request<T>(
     method: string,
-    path: string,
-    body?: Record<string, any>,
+    pathWithQuery: string,
+    body?: Record<string, any> | null,
   ): Promise<T> {
-    const url = method === 'GET' && body
-      ? path + '?' + new URLSearchParams(
-          Object.entries(body).map(([k, v]) => [k, String(v)])
-        ).toString()
-      : path;
+    // 提取纯路径用于签名（不含 query string）
+    const purePath = pathWithQuery.split('?')[0];
 
-    const headers = buildHeaders(url, method, this.token);
+    const headers = buildHeaders(purePath, method, this.token);
 
     const opts: RequestInit = {
       method,
@@ -43,7 +41,7 @@ class PicaHttpClient {
         opts.signal = controller.signal;
         const timer = setTimeout(() => controller.abort(), TIMEOUT);
 
-        const res = await fetch(this.baseUrl + path, opts);
+        const res = await fetch(this.baseUrl + pathWithQuery, opts);
         clearTimeout(timer);
 
         if (!res.ok) {
@@ -55,7 +53,8 @@ class PicaHttpClient {
         }
 
         const json = await res.json();
-        return json.data as T;
+        // Pica API 响应统一为 { code, message, data }
+        return (json.data || json) as T;
       } catch (e: any) {
         lastErr = e;
         if (e.name === 'AbortError') continue;
@@ -67,10 +66,13 @@ class PicaHttpClient {
   }
 
   get<T>(path: string, query?: Record<string, any>) {
-    return this.request<T>('GET', path, query);
+    const qs = query ? '?' + new URLSearchParams(
+      Object.entries(query).map(([k, v]) => [k, String(v)])
+    ).toString() : '';
+    return this.request<T>('GET', path + qs);
   }
 
-  post<T>(path: string, body?: Record<string, any>) {
+  post<T>(path: string, body?: Record<string, any> | null) {
     return this.request<T>('POST', path, body);
   }
 

@@ -1,12 +1,14 @@
 // Pica — 所有 API 端点
+// 参考 PicaComic (https://github.com/Pacalini/PicaComic) 实现
 // @author Jason
 
 import { picaClient as c } from './client';
 import type {
-  PicaComics,
-  PicaComic,
-  PicaChapter,
-  PicaChapterImage,
+  PicaResponse,
+  PicaComicsData,
+  PicaComicData,
+  PicaEpsData,
+  PicaPagesData,
   PicaUser,
 } from './types';
 
@@ -17,34 +19,27 @@ export function login(username: string, password: string) {
   return c.post<{ token: string }>('auth/sign-in', { email: username, password });
 }
 
-// GET /comics — 搜索
-export function searchComics(keyword: string, page = 1) {
-  return c.get<PicaComics>('comics', {
-    s: keyword,
-    page,
-    sort: 'ua',  // 默认按更新时间
+// POST /comics/advanced-search — 搜索（注意：Pica 搜索是 POST，不是 GET）
+export function searchComics(keyword: string, page = 1, sort = 'ua') {
+  return c.post<PicaComicsData>(`comics/advanced-search?page=${page}`, {
+    keyword,
+    sort,
   });
 }
 
 // GET /comics/:id — 漫画详情
 export function comicDetail(id: string) {
-  return c.get<PicaComic>(`comics/${id}`);
+  return c.get<PicaComicData>(`comics/${id}`);
 }
 
-// GET /comics/:id/eps — 章节列表
+// GET /comics/:id/eps?page= — 章节列表
 export function comicEps(id: string, page = 1) {
-  return c.get<{ docs: PicaChapter[]; total: number; page: number; pages: number }>(
-    `comics/${id}/eps`,
-    { page }
-  );
+  return c.get<PicaEpsData>(`comics/${id}/eps`, { page });
 }
 
-// GET /eps/:epId/pages — 章节图片
-export function epPages(epId: string, page = 1) {
-  return c.get<{ docs: PicaChapterImage[]; total: number; page: number; pages: number }>(
-    `eps/${epId}/pages`,
-    { page }
-  );
+// GET /comics/:id/order/:order/pages?page= — 章节图片
+export function epPages(comicId: string, order: number, page = 1) {
+  return c.get<PicaPagesData>(`comics/${comicId}/order/${order}/pages`, { page });
 }
 
 // GET /categories — 分类列表
@@ -54,7 +49,7 @@ export function categories() {
 
 // GET /comics — 分类筛选
 export function comicsByCategory(category: string, page = 1, sort: 'ua' | 'dd' | 'da' | 'ld' = 'ua') {
-  return c.get<PicaComics>('comics', {
+  return c.get<PicaComicsData>('comics', {
     c: category,
     page,
     s: sort,
@@ -66,17 +61,37 @@ export function userProfile() {
   return c.get<PicaUser>('users/profile');
 }
 
-// 漫画收藏
+// GET /users/favourite — 漫画收藏
 export function myFavourites(page = 1) {
-  return c.get<PicaComics>('users/favourite', { page });
+  return c.get<PicaComicsData>('users/favourite', { page });
 }
 
-// 喜欢列表
+// GET /users/likes — 喜欢列表
 export function myLikes(page = 1) {
-  return c.get<PicaComics>('users/likes', { page });
+  return c.get<PicaComicsData>('users/likes', { page });
 }
 
-// 排行榜
+// GET /comics/leaderboard — 排行榜
 export function leaderboard(tt: 'H24' | 'D7' | 'D30' = 'H24', page = 1) {
-  return c.get<PicaComics>('comics/leaderboard', { tt, page });
+  return c.get<PicaComicsData>('comics/leaderboard', { tt, page });
+}
+
+// GET /comics/:id/recommendation — 相关推荐
+export function recommendation(id: string) {
+  return c.get<{ comics: any[] }>(`comics/${id}/recommendation`);
+}
+
+// POST /comics/:id/like — 点赞/取消点赞
+export function likeComic(id: string) {
+  return c.post(`comics/${id}/like`, {});
+}
+
+// POST /comics/:id/favourite — 收藏/取消收藏
+export function favouriteComic(id: string) {
+  return c.post(`comics/${id}/favourite`, {});
+}
+
+// POST /users/punch-in — 签到
+export function punchIn() {
+  return c.post('users/punch-in', null);
 }
