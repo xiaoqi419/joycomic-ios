@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { useReaderStore } from '../store/useReader';
 import { useHistoryStore } from '../store/useHistory';
 import { fetchComicRead, fetchAlbumDetail } from '../api/endpoints';
-import { extractFilename } from '../utils/scramble';
+import { extractFilenameWithoutExt } from '../utils/scramble';
 import { useLegacyColors, LegacyColors, FontSize, Radius, Spacing } from '../theme';
 // DebugOverlay moved to App.tsx
 import type { Episode } from '../api/types';
@@ -167,7 +167,7 @@ export function ReaderScreen() {
   const viewabilityConfig = useMemo(() => ({ itemVisiblePercentThreshold: 30 }), []);
 
   const renderVerticalItem = useCallback(({ item, index }: { item: string; index: number }) => {
-    const picName = extractFilename(item);
+    const picName = extractFilenameWithoutExt(item);
     const store = useReaderStore.getState();
     const h = imageHeights[index];
     return (
@@ -186,7 +186,7 @@ export function ReaderScreen() {
   }, [W, chapterId, imageHeights, handleDimension, toggleUI]);
 
   const renderHorizontalItem = useCallback(({ item, index }: { item: string; index: number }) => {
-    const picName = extractFilename(item);
+    const picName = extractFilenameWithoutExt(item);
     const store = useReaderStore.getState();
     return (
       <TouchableOpacity activeOpacity={1} onPress={toggleUI} style={{ width: W, height: H }}>
