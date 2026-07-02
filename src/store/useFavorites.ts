@@ -14,6 +14,10 @@ interface LocalFav {
   addedAt: number;
 }
 
+function getFid(f: FavoriteFolder): string {
+  return f.FID || f.folder_id || '';
+}
+
 interface FavoritesState {
   local: LocalFav[];
   online: FavoriteItem[];
@@ -26,6 +30,7 @@ interface FavoritesState {
   removeLocal: (id: string) => Promise<void>;
   isFav: (id: string) => boolean;
   loadOnline: (page?: number, folderId?: string) => Promise<void>;
+  loadFolders: () => Promise<void>;
   toggle: (albumId: string) => Promise<boolean>;
   createFolder: (name: string) => Promise<void>;
   deleteFolder: (folderId: string) => Promise<void>;
@@ -72,6 +77,14 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
     set({ loading: false });
   },
 
+  /** 仅加载文件夹列表（轻量），用于详情页收藏弹窗 */
+  loadFolders: async () => {
+    try {
+      const data = await fetchFavorites({ page: 1, folder_id: '0' });
+      set({ folders: data.folder_list || [] });
+    } catch {}
+  },
+
   toggle: async (albumId) => {
     try {
       await apiToggle(albumId);
@@ -82,23 +95,21 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
   createFolder: async (name) => {
     try {
       await apiCreateFolder(name);
-      const { folders } = get();
-      set({ folders: [...folders, { folder_id: String(Date.now()), name, count: '0' }] });
-      await get().loadOnline();
+      await get().loadFolders();
     } catch {}
   },
 
   deleteFolder: async (folderId) => {
     try {
       await apiDeleteFolder(folderId);
-      set({ folders: get().folders.filter((f) => f.folder_id !== folderId) });
+      set({ folders: get().folders.filter((f) => getFid(f) !== folderId) });
     } catch {}
   },
 
   renameFolder: async (folderId, name) => {
     try {
       await apiRenameFolder(folderId, name);
-      set({ folders: get().folders.map((f) => f.folder_id === folderId ? { ...f, name } : f) });
+      set({ folders: get().folders.map((f) => getFid(f) === folderId ? { ...f, name } : f) });
     } catch {}
   },
 

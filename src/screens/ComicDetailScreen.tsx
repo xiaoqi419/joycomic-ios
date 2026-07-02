@@ -2,10 +2,10 @@
 // 3-Tab: 简介 | 章节（分组） | 评论 + 购买 + 分享 + 阅读历史
 // @author nyx
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, Pressable, StyleSheet, ActivityIndicator,
-  Alert, TextInput, Modal, Share,
+  Alert, TextInput, Modal, Share, useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -33,6 +33,7 @@ export function ComicDetailScreen() {
   const { t } = useTranslation();
   const { loggedIn } = useAuthStore();
   const C = useLegacyColors();
+  const { width: winW } = useWindowDimensions();
   const styles = useMemo(() => getStyles(C), [C]);
 
   const [detail, setDetail] = useState<AlbumDetail | null>(null);
@@ -45,7 +46,7 @@ export function ComicDetailScreen() {
   const [showBuy, setShowBuy] = useState(false);
   const [seriesGroups, setSeriesGroups] = useState<Episode[][]>([]);
   const [groupIdx, setGroupIdx] = useState(0);
-  const { isFav, addLocal, removeLocal, folders, createFolder, deleteFolder, renameFolder, moveToFolder, loadOnline, toggle } = useFavoritesStore();
+  const { isFav, addLocal, removeLocal, folders, createFolder, deleteFolder, renameFolder, moveToFolder, loadFolders, toggle } = useFavoritesStore();
   const fav = isFav(albumId);
   const [showFolderPicker, setShowFolderPicker] = useState(false);
   const [showFolderManager, setShowFolderManager] = useState(false);
@@ -53,10 +54,14 @@ export function ComicDetailScreen() {
   const [folderRename, setFolderRename] = useState<{ id: string; name: string } | null>(null);
 
   const [readEp, setReadEp] = useState<{ readId: string; episode: string } | null>(null);
+  const [commentPage, setCommentPage] = useState(1);
+  const [hasMoreComments, setHasMoreComments] = useState(true);
+  const [loadingMoreComments, setLoadingMoreComments] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     load();
-    if (loggedIn) loadOnline();
+    if (loggedIn) loadFolders();
     try {
       const { default: AsyncStorage } = require('@react-native-async-storage/async-storage');
       AsyncStorage.getItem(`@jmcomic.readEp.${albumId}`).then((json: string | null) => {
@@ -97,12 +102,29 @@ export function ComicDetailScreen() {
   };
 
   const loadComments = async () => {
+    setCommentPage(1);
+    setHasMoreComments(true);
     try {
       const data = await fetchComments(albumId);
       setComments(data.list || []);
       setCommentTotal(parseInt(data.total) || 0);
     } catch {}
   };
+
+  /** 加载更多评论（无限滚动） */
+  const loadMoreComments = useCallback(async () => {
+    if (loadingMoreComments || !hasMoreComments) return;
+    setLoadingMoreComments(true);
+    try {
+      const np = commentPage + 1;
+      const data = await fetchComments(albumId, np);
+      const list = data.list || [];
+      if (list.length < 20) setHasMoreComments(false);
+      setComments((prev) => [...prev, ...list]);
+      setCommentPage(np);
+    } catch {}
+    setLoadingMoreComments(false);
+  }, [commentPage, hasMoreComments, loadingMoreComments, albumId]);
 
   const openChapter = async (chId: string, chName: string) => {
     try {
@@ -257,15 +279,28 @@ export function ComicDetailScreen() {
     );
   }
 
+  const relatedList = detail.related_list || [];
   const purchased = detail.purchased !== undefined || detail.bought === true;
+
+  // 从阅读历史中查找该漫画的进度
+  const historyItem = useHistoryStore((s) => s.items.find((h) => h.id === albumId));
 
   return (
     <SafeAreaView style={styles.cont} edges={['top']}>
       <StatusBar style="light" />
-      <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={{ paddingBottom: 80 }}
+        onMomentumScrollEnd={(e) => {
+          if (tab !== 3) return;
+          const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+          if (contentOffset.y + layoutMeasurement.height >= contentSize.height - 60) {
+            loadMoreComments();
+          }
+        }}>
         {/* 封面 + 渐变 */}
         <View style={{ position: 'relative' }}>
-          <Image source={{ uri: getCoverUrl(albumId) }} style={{ width: '100%', height: 300 }} contentFit="cover" />
+          <Image source={{ uri: getCoverUrl(albumId) }} style={{ width: '100%', height: winW * 4 / 3 }} contentFit="cover" />
           <LinearGradient colors={['transparent', 'rgba(0,0,0,0.8)']} style={styles.coverGrad} pointerEvents="none" />
           <View style={styles.coverInfo}>
             <Text style={styles.title}>{detail.name}</Text>
@@ -280,7 +315,7 @@ export function ComicDetailScreen() {
         {/* 开始阅读按钮 */}
         <Pressable onPress={handleStartReading} style={styles.readBtn}>
           <MaterialIcons name={readEp ? 'play-arrow' : 'play-circle-outline'} size={22} color={C.textOnPrimary} />
-          <Text style={styles.readBtnText}>{readEp ? t('detail.continue_reading') : t('detail.start_reading')}</Text>
+          <Text style={styles.readBtnText}>{readEp ? `${t('detail.continue_reading')}${historyItem?.chapterTitle ? ' ' + historyItem.chapterTitle : ''}${historyItem && historyItem.page > 0 ? ` P${historyItem.page}` : ''}` : t('detail.start_reading')}</Text>
         </Pressable>
 
         {/* 状态栏 */}
@@ -320,6 +355,25 @@ export function ComicDetailScreen() {
                 <MaterialIcons name="lock-open" size={18} color={C.textOnPrimary} />
                 <Text style={styles.buyText}>{t('detail.buy')}</Text>
               </Pressable>
+            )}
+
+            {/* 相关漫画 */}
+            {relatedList.length > 0 && (
+              <View style={{ marginTop: 16 }}>
+                <Text style={{ fontSize: FontSize.headline, fontWeight: '700', color: C.textPrimary, marginBottom: 10 }}>{t('blogs.related_comics')}</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {relatedList.slice(0, 8).map((rc) => (
+                    <Pressable
+                      key={rc.id}
+                      onPress={() => nav.push('ComicDetail', { albumId: rc.id })}
+                      style={{ marginRight: 10, width: 100 }}
+                    >
+                      <Image source={{ uri: rc.image || getCoverUrl(rc.id) }} style={{ width: 100, height: 140, borderRadius: Radius.sm, backgroundColor: C.surfaceContainer }} contentFit="cover" />
+                      <Text style={{ fontSize: FontSize.label, color: C.textPrimary, marginTop: 4 }} numberOfLines={2}>{rc.name}</Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
             )}
 
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 16, marginBottom: 20 }}>
@@ -418,6 +472,11 @@ export function ComicDetailScreen() {
                 </View>
               ))
             )}
+            {loadingMoreComments && (
+              <View style={{ paddingVertical: 16, alignItems: 'center' }}>
+                <ActivityIndicator size="small" color={C.primary} />
+              </View>
+            )}
           </View>
         )}
       </ScrollView>
@@ -460,17 +519,20 @@ export function ComicDetailScreen() {
           <View style={[styles.modalDialog, { maxWidth: 360 }]}>
             <Text style={{ color: C.textPrimary, fontSize: FontSize.bodyLarge, fontWeight: '700', textAlign: 'center', marginBottom: 12 }}>收藏到文件夹</Text>
             <ScrollView style={{ maxHeight: 300 }}>
-              {folders.map((f) => (
+              {folders.map((f) => {
+                const fid2 = f.FID || f.folder_id || '';
+                return (
                 <Pressable
-                  key={(f.FID || f.folder_id)}
-                  onPress={() => handleFolderSelect((f.FID || f.folder_id))}
+                  key={fid2}
+                  onPress={() => handleFolderSelect(fid2)}
                   style={styles.folderItem}
                 >
                   <MaterialIcons name="folder" size={20} color={C.primary} style={{ marginRight: 8 }} />
                   <Text style={{ flex: 1, color: C.textPrimary, fontSize: FontSize.body }}>{f.name}</Text>
                   <Text style={{ color: C.textTertiary, fontSize: FontSize.caption }}>{f.count || '0'}</Text>
                 </Pressable>
-              ))}
+                );
+              })}
             </ScrollView>
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
               <TextInput
@@ -508,30 +570,33 @@ export function ComicDetailScreen() {
               </Pressable>
             </View>
             <ScrollView style={{ maxHeight: 300 }}>
-              {folders.map((f) => (
-                <View key={(f.FID || f.folder_id)} style={styles.folderRow}>
-                  {folderRename?.id === (f.FID || f.folder_id) ? (
+              {folders.map((f) => {
+                const fid = f.FID || f.folder_id || '';
+                return (
+                <View key={fid} style={styles.folderRow}>
+                  {folderRename?.id === fid ? (
                     <TextInput
                       style={styles.folderRenameInput}
                       value={folderRename.name}
-                      onChangeText={(t) => setFolderRename({ ...folderRename, name: t })}
-                      onSubmitEditing={() => { renameFolder((f.FID || f.folder_id), folderRename.name); setFolderRename(null); }}
+                      onChangeText={(t) => setFolderRename({ ...folderRename!, name: t })}
+                      onSubmitEditing={() => { renameFolder(fid, folderRename!.name); setFolderRename(null); }}
                       autoFocus
                     />
                   ) : (
                     <>
                       <MaterialIcons name="folder" size={18} color={C.primary} style={{ marginRight: 6 }} />
                       <Text style={{ flex: 1, color: C.textPrimary, fontSize: FontSize.body }}>{f.name}</Text>
-                      <Pressable onPress={() => setFolderRename({ id: (f.FID || f.folder_id), name: f.name })} hitSlop={8} style={{ padding: 4 }}>
+                      <Pressable onPress={() => setFolderRename({ id: fid, name: f.name })} hitSlop={8} style={{ padding: 4 }}>
                         <MaterialIcons name="edit" size={18} color={C.textSecondary} />
                       </Pressable>
-                      <Pressable onPress={() => handleDeleteFolder((f.FID || f.folder_id))} hitSlop={8} style={{ padding: 4 }}>
+                      <Pressable onPress={() => handleDeleteFolder(fid)} hitSlop={8} style={{ padding: 4 }}>
                         <MaterialIcons name="delete-outline" size={18} color={C.error} />
                       </Pressable>
                     </>
                   )}
                 </View>
-              ))}
+                );
+              })}
             </ScrollView>
           </View>
         </View>

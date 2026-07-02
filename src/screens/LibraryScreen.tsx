@@ -1,8 +1,11 @@
-// 收藏库 v2 — 支持 JM + Pica 双源，收藏/喜欢双类型
+// 收藏库 v3 — 文件夹管理 + 双源支持
 // @author Jason
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { View, Text, FlatList, Pressable, StyleSheet, ScrollView, Alert, RefreshControl } from 'react-native';
+import {
+  View, Text, FlatList, Pressable, StyleSheet, ScrollView, Alert,
+  RefreshControl, TextInput, Modal,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Image } from 'expo-image';
@@ -11,7 +14,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useLegacyColors, LegacyColors, Radius, Spacing, FontSize, Shadow } from '../theme';
 import { useAuthStore } from '../store/useAuth';
 import { useFavoritesStore } from '../store/useFavorites';
-import { fetchFavorites, getCoverUrl as getCover } from '../api/endpoints';
+import { fetchFavorites, getCoverUrl as getCover, createFolder as apiCreateFolder, deleteFolder as apiDeleteFolder, renameFolder as apiRenameFolder } from '../api/endpoints';
 import { myFavourites, myLikes } from '../pica/endpoints';
 import type { FavoriteItem, FavoriteFolder } from '../api/types';
 import type { PicaComic } from '../pica/types';
@@ -36,6 +39,11 @@ export function LibraryScreen() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+  const [showNewFolder, setShowNewFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [renameFolderId, setRenameFolderId] = useState<string | null>(null);
+  const [renameText, setRenameText] = useState('');
 
   const title = source === 'pica'
     ? (type === 'like' ? 'Pica 喜欢' : 'Pica 收藏')
@@ -62,19 +70,20 @@ export function LibraryScreen() {
         setTotal(d.total || d.docs?.length || 0);
       } else {
         const o = type === 'like' ? 'ml' : 'mr';
-        const d = await fetchFavorites({ o });
+        const folderId = selectedFolder || '0';
+        const d = await fetchFavorites({ page: 1, o, folder_id: folderId });
         setItems(d.list || []);
         setFolders(d.folder_list || []);
         setTotal(parseInt(d.total) || 0);
       }
     } catch {}
     if (!silent) setLoading(false);
-  }, [loggedIn, source, type, loadLocal, nav]);
+  }, [loggedIn, source, type, loadLocal, selectedFolder]);
 
   useEffect(() => {
     setLoading(true);
     loadData();
-  }, [loggedIn, source, type]);
+  }, [loggedIn, source, type, selectedFolder]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -83,6 +92,37 @@ export function LibraryScreen() {
   }, [loadData]);
 
   const displayItems: any[] = source === 'jm' && items.length === 0 ? local : items;
+
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) return;
+    try {
+      await apiCreateFolder(newFolderName.trim());
+      setNewFolderName('');
+      setShowNewFolder(false);
+      loadData(true);
+    } catch {}
+  };
+
+  const handleRenameFolder = async () => {
+    if (!renameFolderId || !renameText.trim()) return;
+    try {
+      await apiRenameFolder(renameFolderId, renameText.trim());
+      setRenameFolderId(null);
+      setRenameText('');
+      loadData(true);
+    } catch {}
+  };
+
+  const handleDeleteFolder = (fid: string) => {
+    Alert.alert('删除文件夹', '确定删除？文件夹内的收藏不会丢失', [
+      { text: '取消', style: 'cancel' },
+      { text: '删除', style: 'destructive', onPress: async () => {
+        await apiDeleteFolder(fid);
+        if (selectedFolder === fid) setSelectedFolder(null);
+        loadData(true);
+      }},
+    ]);
+  };
 
   return (
     <SafeAreaView edges={["top"]} style={styles.cont}>
@@ -94,18 +134,70 @@ export function LibraryScreen() {
         ListHeaderComponent={
           <View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <Text style={styles.title}>{title}</Text>
+              <Text style={styles.title}>{selectedFolder ? folders.find(f => (f.FID || f.folder_id) === selectedFolder)?.name || title : title}</Text>
               <Text style={styles.total}>{t('library.total', { n: total || displayItems.length })}</Text>
             </View>
-            {source === 'jm' && type === 'favorite' && folders.length > 0 && (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
-                {folders.map((f) => (
-                  <Pressable key={f.FID} style={styles.folderChip}>
-                    <MaterialIcons name="folder" size={14} color={C.primary} style={{ marginRight: 4 }} />
-                    <Text style={styles.folderChipText}>{f.name}</Text>
+
+            {/* 文件夹列表 */}
+            {source === 'jm' && type === 'favorite' && (
+              <>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+                  {/* "全部" 按钮 */}
+                  <Pressable
+                    onPress={() => setSelectedFolder(null)}
+                    style={[styles.folderChip, selectedFolder === null && styles.folderChipActive]}
+                  >
+                    <MaterialIcons name="view-list" size={14} color={selectedFolder === null ? '#fff' : C.primary} style={{ marginRight: 4 }} />
+                    <Text style={[styles.folderChipText, selectedFolder === null && { color: '#fff' }]}>全部</Text>
                   </Pressable>
-                ))}
-              </ScrollView>
+                  {folders.map((f) => {
+                    const fid = f.FID || f.folder_id;
+                    const isActive = fid === selectedFolder;
+                    return (
+                      <Pressable
+                        key={fid}
+                        onPress={() => setSelectedFolder(fid || null)}
+                        onLongPress={() => {
+                          setRenameText(f.name);
+                          setRenameFolderId(fid || null);
+                        }}
+                        style={[styles.folderChip, isActive && styles.folderChipActive]}
+                      >
+                        <MaterialIcons name="folder" size={14} color={isActive ? '#fff' : C.primary} style={{ marginRight: 4 }} />
+                        <Text style={[styles.folderChipText, isActive && { color: '#fff' }]}>{f.name}</Text>
+                        {f.count ? <Text style={[styles.folderCount, isActive && { color: 'rgba(255,255,255,0.7)' }]}>{f.count}</Text> : null}
+                      </Pressable>
+                    );
+                  })}
+                  <Pressable onPress={() => setShowNewFolder(true)} style={styles.folderAddBtn}>
+                    <MaterialIcons name="add" size={18} color={C.primary} />
+                  </Pressable>
+                </ScrollView>
+
+                {/* 重命名输入行 */}
+                {renameFolderId && (
+                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12, alignItems: 'center' }}>
+                    <TextInput
+                      style={styles.inlineInput}
+                      value={renameText}
+                      onChangeText={setRenameText}
+                      placeholder="重命名文件夹"
+                      placeholderTextColor={C.textTertiary}
+                      onSubmitEditing={handleRenameFolder}
+                      autoFocus
+                    />
+                    <Pressable onPress={handleRenameFolder} style={styles.inlineBtn}>
+                      <MaterialIcons name="check" size={20} color="#fff" />
+                    </Pressable>
+                    <Pressable onPress={() => setRenameFolderId(null)}>
+                      <MaterialIcons name="close" size={20} color={C.textSecondary} />
+                    </Pressable>
+                    <Pressable onPress={() => renameFolderId && handleDeleteFolder(renameFolderId)}>
+                      <MaterialIcons name="delete-outline" size={20} color={C.error} />
+                    </Pressable>
+                  </View>
+                )}
+              </>
             )}
           </View>
         }
@@ -143,6 +235,32 @@ export function LibraryScreen() {
           </View>
         }
       />
+
+      {/* 新建文件夹 Modal */}
+      <Modal visible={showNewFolder} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalDialog}>
+            <Text style={{ color: C.textPrimary, fontSize: FontSize.bodyLarge, fontWeight: '700', marginBottom: 12, textAlign: 'center' }}>新建文件夹</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="文件夹名称"
+              placeholderTextColor={C.textTertiary}
+              value={newFolderName}
+              onChangeText={setNewFolderName}
+              onSubmitEditing={handleCreateFolder}
+              autoFocus
+            />
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 16, justifyContent: 'center' }}>
+              <Pressable onPress={() => { setShowNewFolder(false); setNewFolderName(''); }} style={[styles.dialogBtn, { backgroundColor: C.surfaceLight }]}>
+                <Text style={{ color: C.textSecondary, fontWeight: '600' }}>取消</Text>
+              </Pressable>
+              <Pressable onPress={handleCreateFolder} disabled={!newFolderName.trim()} style={[styles.dialogBtn, { backgroundColor: newFolderName.trim() ? C.primary : C.surfaceContainer }]}>
+                <Text style={{ color: newFolderName.trim() ? '#fff' : C.textTertiary, fontWeight: '600' }}>创建</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -154,11 +272,29 @@ function getStyles(C: LegacyColors) {
     total: { color: C.textSecondary, fontSize: FontSize.body },
     folderChip: {
       flexDirection: 'row', alignItems: 'center',
-      paddingHorizontal: 16, paddingVertical: 8, borderRadius: Radius.xl,
+      paddingHorizontal: 14, paddingVertical: 8, borderRadius: Radius.xl,
       backgroundColor: C.surface, marginRight: 8,
       borderWidth: 1, borderColor: C.border,
     },
-    folderChipText: { fontSize: FontSize.label, color: C.textSecondary },
+    folderChipActive: {
+      backgroundColor: C.primary, borderColor: C.primary,
+    },
+    folderChipText: { fontSize: FontSize.label, color: C.textSecondary, fontWeight: '500' },
+    folderCount: { fontSize: FontSize.caption, color: C.textTertiary, marginLeft: 4 },
+    folderAddBtn: {
+      width: 36, height: 36, borderRadius: 18,
+      backgroundColor: C.surface, borderWidth: 1, borderColor: C.border,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    inlineInput: {
+      flex: 1, borderWidth: 1, borderColor: C.border, borderRadius: Radius.sm,
+      paddingHorizontal: 12, paddingVertical: 6, color: C.textPrimary,
+      fontSize: FontSize.body, backgroundColor: C.surface,
+    },
+    inlineBtn: {
+      width: 32, height: 32, borderRadius: 16,
+      backgroundColor: C.primary, justifyContent: 'center', alignItems: 'center',
+    },
     item: {
       flexDirection: 'row',
       backgroundColor: C.surface, borderRadius: Radius.card,
@@ -169,5 +305,21 @@ function getStyles(C: LegacyColors) {
     itemCover: { width: 60, height: 80, borderRadius: Radius.sm, backgroundColor: C.surfaceContainer },
     itemTitle: { fontWeight: '600', color: C.textPrimary, fontSize: FontSize.body },
     itemAuthor: { fontSize: FontSize.label, color: C.textSecondary, marginTop: 4 },
+    modalOverlay: {
+      flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'center', alignItems: 'center',
+    },
+    modalDialog: {
+      backgroundColor: C.surface, borderRadius: Radius.lg,
+      padding: 24, width: '80%', maxWidth: 340,
+    },
+    modalInput: {
+      borderWidth: 1, borderColor: C.border, borderRadius: Radius.sm,
+      paddingHorizontal: 14, paddingVertical: 10, color: C.textPrimary,
+      fontSize: FontSize.body, backgroundColor: C.surfaceContainer,
+    },
+    dialogBtn: {
+      paddingHorizontal: 24, paddingVertical: 10, borderRadius: Radius.chip,
+    },
   });
 }
