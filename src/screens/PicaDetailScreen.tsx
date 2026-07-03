@@ -22,7 +22,8 @@ const TABS = ['详情', '章节'];
 
 export function PicaDetailScreen() {
   const nav = useNavigation<any>();
-  const { comicId } = useRoute<any>().params;
+  const p = useRoute<any>().params;
+  const comicId = p?.comicId || p?.albumId || p?.id || '';
   const C = useLegacyColors();
   const styles = useMemo(() => getStyles(C), [C]);
 

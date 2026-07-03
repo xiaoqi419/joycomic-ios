@@ -65,7 +65,7 @@ export function ComicDetailScreen() {
     try {
       const { default: AsyncStorage } = require('@react-native-async-storage/async-storage');
       AsyncStorage.getItem(`@jmcomic.readEp.${albumId}`).then((json: string | null) => {
-        if (json) setReadEp(JSON.parse(json));
+        if (json) try { setReadEp(JSON.parse(json)); } catch {}
       });
     } catch {}
   }, [albumId]);
@@ -305,8 +305,10 @@ export function ComicDetailScreen() {
           <View style={styles.coverInfo}>
             <Text style={styles.title}>{detail.name}</Text>
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 2 }}>
-              {(detail.author || []).map((a, i) => (
-                <Text key={i} style={{ color: C.primaryLight, fontSize: FontSize.body }}>{a}</Text>
+              {(Array.isArray(detail.author) ? detail.author : [detail.author].filter(Boolean)).map((a, i) => (
+                <Pressable key={i} onPress={() => nav.navigate('Main', { screen: 'Search', params: { query: a } })}>
+                  <Text style={{ color: C.primaryLight, fontSize: FontSize.body }}>{a}</Text>
+                </Pressable>
               ))}
             </View>
           </View>
