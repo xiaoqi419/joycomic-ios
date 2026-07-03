@@ -21,8 +21,9 @@ class PicaHttpClient {
     pathWithQuery: string,
     body?: Record<string, any> | null,
   ): Promise<T> {
-    // 签名用的完整路径（含 query string，与 haka_comic 一致）
-    const headers = buildHeaders(pathWithQuery, method, this.token);
+    // 签名用纯路径（不含 query string，Pica 服务器要求）
+    const purePath = pathWithQuery.split('?')[0];
+    const headers = buildHeaders(purePath, method, this.token);
 
     const opts: RequestInit = {
       method,

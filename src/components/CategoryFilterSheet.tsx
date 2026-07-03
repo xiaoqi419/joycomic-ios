@@ -29,39 +29,48 @@ export function CategoryFilterSheet({ visible, onClose, onConfirm, initialSelect
   const C = useLegacyColors();
   const [jmCats, setJmCats] = useState<CatNode[]>([]);
   const [picaCats, setPicaCats] = useState<{ id: string; name: string }[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [selectedJm, setSelectedJm] = useState<Set<string>>(new Set(initialSelected?.jm || []));
   const [selectedPica, setSelectedPica] = useState<Set<string>>(new Set(initialSelected?.pica || []));
   const picaLoggedIn = usePicaStore((s) => s.loggedIn);
 
   useEffect(() => {
     if (!visible) return;
+    let cancelled = false;
     setLoading(true);
-    let completed = 0;
-    const done = () => { completed++; if (completed >= 2) setLoading(false); };
+    const promises: Promise<void>[] = [];
 
     if (source === 'all' || source === 'jm') {
-      fetchCategories().then((d) => {
-        const cats = (d.categories || []).map((c: any) => ({
-          id: c.slug || c.name,
-          name: c.name || c.title || '',
-          slug: c.slug || '0',
-          children: (c.sub_categories || []).map((sc: any) => ({
-            id: sc.slug || sc.CID || sc.name,
-            name: sc.name || '',
-            slug: sc.slug || '0',
-          })),
-        }));
-        setJmCats(cats);
-      }).catch(() => {}).finally(done);
-    } else { done(); }
+      promises.push(
+        fetchCategories().then((d) => {
+          if (cancelled) return;
+          const cats = (d.categories || []).map((c: any) => ({
+            id: c.slug || c.name,
+            name: c.name || c.title || '',
+            slug: c.slug || '0',
+            children: (c.sub_categories || []).map((sc: any) => ({
+              id: sc.slug || sc.CID || sc.name,
+              name: sc.name || '',
+              slug: sc.slug || '0',
+            })),
+          }));
+          setJmCats(cats);
+        }).catch(() => {})
+      );
+    }
 
     if ((source === 'all' || source === 'pica') && picaLoggedIn) {
-      picaCategories().then((d) => {
-        const all = ((d as any).categories || []).filter((c: any) => c.isWeb !== true);
-        setPicaCats(all.map((c: any) => ({ id: c._id || c.title, name: c.title })));
-      }).catch(() => {}).finally(done);
-    } else { done(); }
+      promises.push(
+        picaCategories().then((d) => {
+          if (cancelled) return;
+          const all = ((d as any).categories || []).filter((c: any) => c.isWeb !== true);
+          setPicaCats(all.map((c: any) => ({ id: c._id || c.title, name: c.title })));
+        }).catch(() => {})
+      );
+    }
+
+    Promise.all(promises).then(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [visible, source, picaLoggedIn]);
 
   const toggleJm = (slug: string) => {

@@ -4,18 +4,20 @@
 import { Platform } from 'react-native';
 
 const REPO = 'xiaoqi419/jmcomic-ios';
+const CACHE_KEY = '@jmcomic.update_check';
+const CACHE_TTL = 3600_000; // 1 小时
 
-const PROXIES = [
-  `https://api.github.com/repos/${REPO}/releases/latest`,
-  `https://ghproxy.net/https://api.github.com/repos/${REPO}/releases/latest`,
-  `https://ghproxy.com/https://api.github.com/repos/${REPO}/releases/latest`,
-  `https://mirror.ghproxy.com/https://api.github.com/repos/${REPO}/releases/latest`,
-  `https://github.moeyy.xyz/https://api.github.com/repos/${REPO}/releases/latest`,
-  `https://gh.api.99988866.xyz/https://api.github.com/repos/${REPO}/releases/latest`,
-  `https://gitproxy.click/https://api.github.com/repos/${REPO}/releases/latest`,
-  `https://github-proxy.linfeng.xyz/https://api.github.com/repos/${REPO}/releases/latest`,
-  `https://slink.ltd/https://api.github.com/repos/${REPO}/releases/latest`,
-];
+const isWeb = Platform.OS === 'web';
+
+const PROXIES = isWeb
+  ? [`https://api.github.com/repos/${REPO}/releases/latest`]
+  : [
+      `https://api.github.com/repos/${REPO}/releases/latest`,
+      `https://ghproxy.net/https://api.github.com/repos/${REPO}/releases/latest`,
+      `https://github.moeyy.xyz/https://api.github.com/repos/${REPO}/releases/latest`,
+    ];
+
+const FETCH_TIMEOUT = isWeb ? 5000 : 8000;
 
 export interface ReleaseInfo {
   tag_name: string;
@@ -50,20 +52,39 @@ function compareVersions(a: string, b: string): number {
   return 0;
 }
 
-const FETCH_TIMEOUT = 8000;
+/** 从缓存读取检查结果 */
+function getCachedResult(): CheckResult | null {
+  try {
+    const raw = (global as any).__updateCache;
+    if (raw && Date.now() - raw.time < CACHE_TTL) return raw.data;
+  } catch {}
+  return null;
+}
+
+/** 写入缓存 */
+function setCachedResult(data: CheckResult): void {
+  try { (global as any).__updateCache = { data, time: Date.now() }; } catch {}
+}
 
 export async function checkForUpdate(currentVersion: string): Promise<CheckResult> {
+  // 有缓存直接返回
+  const cached = getCachedResult();
+  if (cached) return cached;
+
   for (const url of PROXIES) {
     try {
       const ctrl = new AbortController();
       const tid = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT);
       const res = await fetch(url, {
-        headers: { 'User-Agent': 'JOYComic-iOS/1.0', 'Accept': 'application/json' },
+        headers: {
+          'User-Agent': 'JOYComic-iOS/1.0',
+          Accept: 'application/json',
+          ...(url.includes('api.github.com') ? { 'X-GitHub-Api-Version': '2022-11-28' } : {}),
+        },
         signal: ctrl.signal,
       });
       clearTimeout(tid);
       if (!res.ok) continue;
-      // 手动读 text 再 parse（有些 proxy 返回非标准 content-type 但内容实为 json）
       const text = await res.text();
       let data: ReleaseInfo;
       try { data = JSON.parse(text); } catch { continue; }
@@ -71,22 +92,19 @@ export async function checkForUpdate(currentVersion: string): Promise<CheckResul
 
       const latest = data.tag_name.replace(/^v/i, '');
       const hasUpdate = compareVersions(latest, currentVersion) > 0;
+      const result: CheckResult = { hasUpdate, latestVersion: latest, currentVersion, release: data };
 
-      return {
-        hasUpdate,
-        latestVersion: latest,
-        currentVersion,
-        release: data,
-      };
+      setCachedResult(result);
+      return result;
     } catch {
       continue;
     }
   }
-  return {
-    hasUpdate: false,
-    latestVersion: '',
-    currentVersion,
-    release: null,
-    error: '无法连接到更新服务器',
+
+  const failResult: CheckResult = {
+    hasUpdate: false, latestVersion: '', currentVersion,
+    release: null, error: '无法连接到更新服务器',
   };
+  setCachedResult(failResult);
+  return failResult;
 }
