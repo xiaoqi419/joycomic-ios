@@ -66,8 +66,9 @@ export function LibraryScreen() {
     try {
       if (source === 'pica') {
         const d = type === 'like' ? await myLikes() : await myFavourites();
-        setItems(d.docs || []);
-        setTotal(d.total || d.docs?.length || 0);
+        const data = (d as any).comics || d;
+        setItems(data.docs || []);
+        setTotal(data.total || data.docs?.length || 0);
       } else {
         const o = type === 'like' ? 'ml' : 'mr';
         const folderId = selectedFolder || '0';

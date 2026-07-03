@@ -5,12 +5,8 @@
 // @author nyx
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { View, ActivityIndicator, Platform, FlatList, ScrollView } from 'react-native';
+import { View, ActivityIndicator, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-
-// 全局隐藏列表滚动条，用户无感滑动
-FlatList.defaultProps = { ...FlatList.defaultProps, showsVerticalScrollIndicator: false };
-ScrollView.defaultProps = { ...ScrollView.defaultProps, showsVerticalScrollIndicator: false };
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NavigationContainer, Theme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
