@@ -92,7 +92,7 @@ export function ComicDetailScreen() {
         }
         jmLogger.log(`【详情】字段快照: ${JSON.stringify(sample)}`);
       }
-      if (d.series?.length) {
+      if (Array.isArray(d.series) && d.series.length) {
         setSeriesGroups(chunkArray(d.series, 10));
       }
       loadComments();
@@ -280,7 +280,7 @@ export function ComicDetailScreen() {
     );
   }
 
-  const relatedList = detail.related_list || [];
+  const relatedList = Array.isArray(detail.related_list) ? detail.related_list : [];
   const purchased = detail.purchased !== undefined || detail.bought === true;
 
   // 从阅读历史中查找该漫画的进度

@@ -183,7 +183,7 @@ export async function fetchAlbumDetail(albumId: string): Promise<AlbumDetail> {
  * 此时用 albumId 作为章节 ID，确保能进入阅读器。
  */
 function ensureEpisodes(detail: AlbumDetail, albumId: string): AlbumDetail {
-  if (detail.series && detail.series.length > 0) return detail;
+  if (Array.isArray(detail.series) && detail.series.length > 0) return detail;
   // series_id=0 或不存在 → 单章本
   const sid = detail.series_id as any;
   if (sid === 0 || sid === '0' || sid === undefined || sid === null || sid === '') {

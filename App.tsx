@@ -131,8 +131,9 @@ function AppInner() {
       >
         <Stack.Screen name="Main" component={HomeTabs} options={{ headerShown: false }} />
         <Stack.Screen name="Search" component={SearchScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="ComicDetail" component={ComicDetailScreen}
-          options={{ title: '详情', headerBackTitle: '返回' }} />
+        <Stack.Screen name="ComicDetail" options={{ title: '详情', headerBackTitle: '返回' }}>
+          {() => <ErrorBoundary title="漫画详情"><ComicDetailScreen /></ErrorBoundary>}
+        </Stack.Screen>
         <Stack.Screen name="Reader" component={ReaderScreen}
           options={{ headerShown: false, orientation: 'default' as const }} />
         <Stack.Screen name="Novels" component={NovelsScreen}
@@ -143,8 +144,9 @@ function AppInner() {
           options={{ headerShown: false }} />
         <Stack.Screen name="MoviePlayer" component={MoviePlayerScreen}
           options={{ headerShown: false }} />
-        <Stack.Screen name="PicaDetail" component={PicaDetailScreen}
-          options={{ headerShown: false }} />
+        <Stack.Screen name="PicaDetail" options={{ headerShown: false }}>
+          {() => <ErrorBoundary title="Pica 详情"><PicaDetailScreen /></ErrorBoundary>}
+        </Stack.Screen>
         <Stack.Screen name="PicaReader" component={PicaReaderScreen}
           options={{ headerShown: false }} />
         <Stack.Screen name="Blogs" component={BlogsScreen}
