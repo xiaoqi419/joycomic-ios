@@ -59,7 +59,7 @@ export function PicaCategoryResultScreen() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.background }}>
+    <View style={{ flex: 1, backgroundColor: C.background }}>
       <FlatList
         data={comics}
         renderItem={renderItem}
@@ -80,6 +80,6 @@ export function PicaCategoryResultScreen() {
           </View>
         }
       />
-    </SafeAreaView>
+    </View>
   );
 }
