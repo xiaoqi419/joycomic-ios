@@ -331,11 +331,15 @@ export function ComicDetailScreen() {
 
         {/* 3-Tab 导航 */}
         <View style={styles.tabBar}>
-          {(t('detail.menu_items', { returnObjects: true }) as string[]).map((label: string, i: number) => (
-            <Pressable key={i} onPress={() => setTab(i + 1)} style={[styles.tab, tab === i + 1 && styles.tabActive]}>
-              <Text style={[styles.tabText, tab === i + 1 && styles.tabTextActive]}>{label}</Text>
-            </Pressable>
-          ))}
+          {(() => {
+            const items = t('detail.menu_items', { returnObjects: true });
+            if (!Array.isArray(items)) return null;
+            return (items as string[]).map((label: string, i: number) => (
+              <Pressable key={i} onPress={() => setTab(i + 1)} style={[styles.tab, tab === i + 1 && styles.tabActive]}>
+                <Text style={[styles.tabText, tab === i + 1 && styles.tabTextActive]}>{label}</Text>
+              </Pressable>
+            ));
+          })()}
         </View>
 
         {/* Tab 1: 简介 */}

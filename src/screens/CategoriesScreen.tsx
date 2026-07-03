@@ -15,6 +15,7 @@ import { picaCategories, comicsByCategory } from '../pica/endpoints';
 import { thumbUrl } from '../pica/types';
 import type { ComicItem } from '../api/types';
 import type { PicaCategory, PicaComicBrief } from '../pica/types';
+import { isPicaEnabled } from '../sources/pica';
 
 const { width: W } = Dimensions.get('window');
 const GRID_GAP = 10;
@@ -222,7 +223,16 @@ export function CategoriesScreen() {
         <Pressable onPress={() => { setSource('jm'); setSlug(''); }} style={[styles.sourceTab, source === 'jm' && styles.sourceTabActive]}>
           <Text style={[styles.sourceTabText, source === 'jm' && styles.sourceTabTextActive]}>JM</Text>
         </Pressable>
-        <Pressable onPress={() => { setSource('pica'); setSelectedPicaCat(null); }} style={[styles.sourceTab, source === 'pica' && styles.sourceTabActive]}>
+        <Pressable onPress={() => {
+          if (!isPicaEnabled()) {
+            Alert.alert('提示', '请先登录 Pica 账号', [
+              { text: '取消', style: 'cancel' },
+              { text: '去登录', onPress: () => nav.navigate('Member' as never) },
+            ]);
+            return;
+          }
+          setSource('pica'); setSelectedPicaCat(null);
+        }} style={[styles.sourceTab, source === 'pica' && styles.sourceTabActive]}>
           <Text style={[styles.sourceTabText, source === 'pica' && styles.sourceTabTextActive]}>Pica</Text>
         </Pressable>
       </View>

@@ -162,9 +162,9 @@ function AppInner() {
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen}
           options={{ presentation: 'modal', headerShown: false }} />
         <Stack.Screen name="About" component={AboutScreen}
-          options={{ title: '关于', headerBackTitle: '返回' }} />
+          options={{ headerShown: false }} />
         <Stack.Screen name="DownloadList" component={DownloadListScreen}
-          options={{ title: '下载管理', headerBackTitle: '返回' }} />
+          options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

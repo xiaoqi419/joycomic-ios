@@ -487,7 +487,7 @@ function getStyles(C: LegacyColors) {
     input: { flex: 1, height: 44, paddingHorizontal: 8, color: C.textPrimary, fontSize: FontSize.body },
     searchBtn: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-      height: 44, borderRadius: Radius.button, backgroundColor: C.primary, gap: 6, marginBottom: 4,
+      height: 44, borderRadius: Radius.button, backgroundColor: C.primary, gap: 6, marginTop: 8, marginBottom: 4,
     },
     searchBtnText: { color: '#fff', fontWeight: '700', fontSize: FontSize.body },
     sortBtn: {
