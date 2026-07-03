@@ -288,6 +288,10 @@ export function ComicDetailScreen() {
   return (
     <SafeAreaView style={styles.cont} edges={['top']}>
       <StatusBar style="light" />
+      {/* 返回按钮 */}
+      <Pressable onPress={() => nav.goBack()} style={{ position: 'absolute', top: 8, left: 8, zIndex: 10, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center' }}>
+        <MaterialIcons name="arrow-back" size={24} color="#fff" />
+      </Pressable>
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={{ paddingBottom: 80 }}
