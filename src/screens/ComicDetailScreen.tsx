@@ -264,21 +264,21 @@ export function ComicDetailScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.cont}>
+      <View style={[styles.cont, { paddingTop: 0 }]}>
         <StatusBar style="light" />
         <View style={styles.center}><ActivityIndicator size="large" color={C.primary} /></View>
-      </SafeAreaView>
+      </View>
     );
   }
   if (!detail) {
     return (
-      <SafeAreaView style={styles.cont}>
+      <View style={[styles.cont, { paddingTop: 0 }]}>
         <StatusBar style="light" />
         <View style={styles.center}>
           <Text style={{ color: C.error }}>{t('common.error')}</Text>
           <Pressable onPress={load} style={{ marginTop: 12 }}><Text style={{ color: C.primary }}>{t('common.retry')}</Text></Pressable>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -286,7 +286,7 @@ export function ComicDetailScreen() {
   const purchased = detail.purchased !== undefined || detail.bought === true;
 
   return (
-    <SafeAreaView style={styles.cont}>
+    <View style={[styles.cont, { paddingTop: 0, paddingBottom: 0 }]}>
       <StatusBar style="light" />
       <ScrollView
         ref={scrollRef}
@@ -608,7 +608,7 @@ export function ComicDetailScreen() {
         </View>
       </Modal>
 
-    </SafeAreaView>
+    </View>
   );
 }
 
