@@ -33,6 +33,9 @@
         "projectId": "3f522f1e-f1a2-4fd4-a09d-f5b30ee19be8"
       }
     },
-    "owner": "pekilovex"
+    "owner": "pekilovex",
+    "experiments": {
+      "reactCompiler": true
+    }
   }
 }

@@ -4,7 +4,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { picaClient } from '../pica/client';
-import { login as picaLogin } from '../pica/endpoints';
+import { login as picaLogin, punchIn } from '../pica/endpoints';
 
 export type PicaApiSource = 'go2778' | 'picacomic';
 
@@ -40,6 +40,8 @@ export const usePicaStore = create<PicaState>((set, get) => ({
     picaClient.setToken(token);
     set({ username, token, loggedIn: true });
     await AsyncStorage.setItem(KEY, JSON.stringify({ username, token }));
+    // 自动签到
+    try { await punchIn(); } catch {}
   },
 
   logout: async () => {
