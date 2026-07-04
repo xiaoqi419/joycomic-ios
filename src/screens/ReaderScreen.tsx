@@ -323,7 +323,8 @@ export function ReaderScreen() {
 
       {/* 顶部栏 */}
       {showUI && (
-        <SafeAreaView edges={['top']} style={styles.topBar}>
+        <View style={styles.topBar}>
+          <SafeAreaView edges={['top']} style={styles.topBarInner}>
           <TouchableOpacity onPress={() => nav.goBack()} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <MaterialIcons name="arrow-back" size={22} color="#fff" />
             <Text style={styles.topText}>{t('common.back')}</Text>
@@ -350,11 +351,13 @@ export function ReaderScreen() {
             </TouchableOpacity>
           </View>
         </SafeAreaView>
+        </View>
       )}
 
       {/* 底部栏 */}
       {showUI && (
-        <SafeAreaView edges={['top']} style={styles.bottomBar}>
+        <View style={styles.bottomBar}>
+          <SafeAreaView edges={['bottom']} style={{ paddingHorizontal: 0 }}>
           {/* 上/下一章 按钮 */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
             <TouchableOpacity
@@ -455,7 +458,8 @@ export function ReaderScreen() {
               </TouchableOpacity>
             </View>
 
-        </SafeAreaView>
+          </SafeAreaView>
+        </View>
       )}
 
       {/* 章节选择弹窗 */}
@@ -507,24 +511,29 @@ function getStyles(C: LegacyColors) {
       flexDirection: 'row',
     },
     topBar: {
-      position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100,
+      position: 'absolute', top: 0, left: 8, right: 8, zIndex: 100,
+      borderRadius: 14, overflow: 'hidden',
+      backgroundColor: 'rgba(20,20,30,0.85)',
+    },
+    topBarInner: {
       flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-      paddingHorizontal: 14, paddingTop: 8, paddingBottom: 4,
-      backgroundColor: 'rgba(0,0,0,0.6)',
+      paddingHorizontal: 4, paddingVertical: 2, height: 48,
     },
-    topText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+    topText: { color: '#fff', fontSize: 15, fontWeight: '600', letterSpacing: 0.3 },
     bottomBar: {
-      position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 100,
-      paddingHorizontal: 14, paddingBottom: 24, paddingTop: 8,
-      backgroundColor: 'rgba(0,0,0,0.6)',
+      position: 'absolute', bottom: 0, left: 8, right: 8, zIndex: 100,
+      borderRadius: 14, overflow: 'hidden',
+      backgroundColor: 'rgba(20,20,30,0.85)',
+      paddingHorizontal: 4, paddingBottom: 4, paddingTop: 4,
     },
-    sliderContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    progressLabel: { color: '#aaa', fontSize: 11, width: 30, textAlign: 'center' },
-    sliderTrack: { flex: 1, height: 32, justifyContent: 'center', position: 'relative' },
-    sliderFill: { height: 4, backgroundColor: C.primary, borderRadius: 2 },
+    sliderContainer: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 4 },
+    progressLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: '600', width: 36, textAlign: 'center', fontVariant: ['tabular-nums'] },
+    sliderTrack: { flex: 1, height: 4, justifyContent: 'center', position: 'relative', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 3 },
+    sliderFill: { height: '100%', backgroundColor: C.primary, borderRadius: 3 },
     sliderThumb: {
-      position: 'absolute', width: 16, height: 16, borderRadius: 8,
-      backgroundColor: C.primary, marginLeft: -8, top: 8,
+      position: 'absolute', width: 14, height: 14, borderRadius: 7,
+      backgroundColor: C.primary, borderWidth: 2, borderColor: '#fff',
+      marginLeft: -7, top: -5,
     },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
     modalContent: {
