@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLegacyColors, LegacyColors, Radius, Spacing, FontSize } from '../theme';
 import { fetchNovels, fetchNovelDetail, fetchNovelContent, getImgHost } from '../api/endpoints';
+import { jmLogger } from '../utils/JmLogger';
 import type { NovelItem, NovelChapter, NovelContent } from '../api/types';
 
 export function NovelsScreen() {
@@ -166,7 +167,14 @@ export function NovelReaderScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchNovelContent(chapterId).then(setContent).catch(() => { setLoading(false); }).finally(() => setLoading(false));
+    jmLogger.log(`小说阅读: chapterId=${chapterId}`);
+    fetchNovelContent(chapterId).then((d) => {
+      jmLogger.log(`小说阅读: 返回 keys=${Object.keys(d || {}).join(',')}  sample=${JSON.stringify(d).slice(0, 200)}`);
+      setContent(d);
+    }).catch((e) => {
+      jmLogger.err(`小说阅读: 失败 ${e?.message || e}`);
+      setLoading(false);
+    }).finally(() => setLoading(false));
   }, [chapterId]);
 
   if (loading) return <SafeAreaView edges={["top"]} style={styles.cont}><View style={styles.center}><ActivityIndicator color={C.primary} /></View></SafeAreaView>;

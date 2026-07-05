@@ -1,16 +1,18 @@
-// Pica 阅读器 v4 — 无缝纵向滚动 + 毛玻璃工具栏
+// Pica 阅读器 v5 — 全功能（亮度/章节弹窗/布局切换/保存）
 // @author Jason
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, StyleSheet, ActivityIndicator, Dimensions,
-  FlatList, Text, Pressable, Platform, Animated,
+  FlatList, Text, Pressable, Platform, Animated, Modal, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Image } from 'expo-image';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as Brightness from 'expo-brightness';
+import * as MediaLibrary from 'expo-media-library';
 import { Colors, FontSize } from '../theme';
 import { picaSource } from '../sources/pica';
 import type { SourceImage, SourceChapter } from '../sources/types';
@@ -28,19 +30,23 @@ export function PicaReaderScreen() {
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showUI, setShowUI] = useState(false);
-  const [imgLayout, setImgLayout] = useState<'contain' | 'fitWidth'>('fitWidth');
+  const [imgLayout, setImgLayout] = useState<'contain' | 'fitWidth' | 'fitHeight'>('fitWidth');
   const [imgHeights, setImgHeights] = useState<Record<number, number>>({});
+  const [brightness, setBrightnessVal] = useState(1);
+  const [showBrightness, setShowBrightness] = useState(false);
+  const [showChapterModal, setShowChapterModal] = useState(false);
   const flatRef = useRef<FlatList>(null);
   const uiOpacity = useRef(new Animated.Value(0)).current;
 
-  // 控制工具栏淡入淡出
   const toggleUI = useCallback(() => {
     const toValue = showUI ? 0 : 1;
-    Animated.timing(uiOpacity, {
-      toValue, duration: 200, useNativeDriver: true,
-    }).start();
+    Animated.timing(uiOpacity, { toValue, duration: 200, useNativeDriver: true }).start();
     setShowUI(!showUI);
   }, [showUI, uiOpacity]);
+
+  useEffect(() => {
+    Brightness.getBrightnessAsync().then(setBrightnessVal).catch(() => {});
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -55,12 +61,12 @@ export function PicaReaderScreen() {
     })();
     picaSource.fetchImages(comicId, chapterOrder ?? 1)
       .then((imgs) => { if (!cancelled) setImages(imgs); })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setLoading(false); });
+      .catch(() => {}).finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [comicId, chapterOrder, chapterId]);
 
   const goChapter = useCallback((order: number) => {
+    setShowChapterModal(false);
     setLoading(true); setImages([]); setImgHeights({}); setCurrentIndex(0);
     picaSource.fetchImages(comicId, order).then(setImages).catch(() => {}).finally(() => setLoading(false));
   }, [comicId]);
@@ -74,6 +80,16 @@ export function PicaReaderScreen() {
     const next = chapters[currentChIdx + 1];
     if (next) { setCurrentChIdx(currentChIdx + 1); goChapter(next.order); }
   }, [chapters, currentChIdx, goChapter]);
+
+  const handleSaveImage = useCallback(async () => {
+    if (images.length === 0) return;
+    const { status } = await MediaLibrary.requestPermissionsAsync();
+    if (status !== 'granted') { Alert.alert('需要权限', '请在设置中允许保存图片'); return; }
+    try {
+      await MediaLibrary.saveToLibraryAsync(images[currentIndex]?.url || images[0]?.url || '');
+      Alert.alert('', '已保存');
+    } catch { Alert.alert('', '保存失败'); }
+  }, [images, currentIndex]);
 
   const handleLoad = useCallback((index: number, w: number, h: number) => {
     if (w > 0 && h > 0) {
@@ -97,11 +113,7 @@ export function PicaReaderScreen() {
   const progress = totalPages > 0 ? ((currentIndex + 1) / totalPages) * 100 : 0;
 
   if (loading) {
-    return (
-      <SafeAreaView edges={["top"]} style={styles.cont}>
-        <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 100 }} />
-      </SafeAreaView>
-    );
+    return <SafeAreaView edges={["top"]} style={styles.cont}><ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 100 }} /></SafeAreaView>;
   }
 
   return (
@@ -117,13 +129,10 @@ export function PicaReaderScreen() {
           return (
             <Pressable onPress={toggleUI}>
               <View style={{ width: W, height: imgH || W * 1.4, backgroundColor: '#000' }}>
-                <Image
-                  source={{ uri: item.url }}
-                  style={{ width: '100%', height: '100%' }}
-                  contentFit={imgLayout === 'fitWidth' ? 'contain' : 'cover'}
+                <Image source={{ uri: item.url }} style={{ width: '100%', height: '100%' }}
+                  contentFit={imgLayout === 'fitWidth' ? 'contain' : imgLayout === 'fitHeight' ? 'cover' : 'contain'}
                   cachePolicy="memory-disk" placeholder={null}
-                  onLoad={(e) => { const { width: nw, height: nh } = e.source; if (nw && nh) handleLoad(index, nw, nh); }}
-                />
+                  onLoad={(e) => { const { width: nw, height: nh } = e.source; if (nw && nh) handleLoad(index, nw, nh); }} />
               </View>
             </Pressable>
           );
@@ -132,8 +141,7 @@ export function PicaReaderScreen() {
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={{ itemVisiblePercentThreshold: 30 }}
         removeClippedSubviews={Platform.OS === 'android'}
-        windowSize={5} initialNumToRender={3} maxToRenderPerBatch={5}
-      />
+        windowSize={5} initialNumToRender={3} maxToRenderPerBatch={5} />
 
       {/* 底栏 */}
       <Animated.View style={[styles.bar, styles.bottomBar, { opacity: uiOpacity }]}>
@@ -158,12 +166,65 @@ export function PicaReaderScreen() {
           <Pressable onPress={() => nav.goBack()} hitSlop={12} style={styles.iconBtn}>
             <MaterialIcons name="arrow-back" size={24} color="#fff" />
           </Pressable>
-          <Text style={styles.titleText} numberOfLines={1}>{chTitle}</Text>
-          <Pressable onPress={() => setImgLayout(imgLayout === 'contain' ? 'fitWidth' : 'contain')} hitSlop={8} style={styles.iconBtn}>
-            <MaterialIcons name={imgLayout === 'contain' ? 'fullscreen' : 'fullscreen-exit'} size={22} color="#fff" />
+          <Pressable onPress={() => setShowChapterModal(true)} style={{ flex: 1, alignItems: 'center', paddingHorizontal: 4 }}>
+            <Text style={styles.titleText} numberOfLines={1}>{chTitle}</Text>
+          </Pressable>
+          {/* 布局切换 */}
+          <Pressable onPress={() => setImgLayout(imgLayout === 'contain' ? 'fitWidth' : imgLayout === 'fitWidth' ? 'fitHeight' : 'contain')} hitSlop={8} style={styles.iconBtn}>
+            <MaterialIcons name={imgLayout === 'contain' ? 'fullscreen' : imgLayout === 'fitWidth' ? 'photo-size-select-large' : 'photo-size-select-small'} size={22} color="#fff" />
+          </Pressable>
+          {/* 保存 */}
+          <Pressable onPress={handleSaveImage} hitSlop={8} style={styles.iconBtn}>
+            <MaterialIcons name="save-alt" size={22} color="#fff" />
+          </Pressable>
+          {/* 亮度 */}
+          <Pressable onPress={() => setShowBrightness(!showBrightness)} hitSlop={8} style={styles.iconBtn}>
+            <MaterialIcons name={showBrightness ? 'brightness-high' : 'brightness-low'} size={22} color="#fff" />
           </Pressable>
         </SafeAreaView>
+        {/* 亮度滑块 */}
+        {showBrightness && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 6, gap: 8 }}>
+            <MaterialIcons name="brightness-low" size={18} color="rgba(255,255,255,0.6)" />
+            <View style={styles.brightTrack}>
+              <View style={[styles.brightFill, { width: `${brightness * 100}%` }]} />
+              <View style={[styles.brightThumb, { left: `${brightness * 96}%` }]} />
+            </View>
+            <MaterialIcons name="brightness-high" size={18} color="rgba(255,255,255,0.6)" />
+          </View>
+        )}
       </Animated.View>
+
+      {/* 章节弹窗 */}
+      <Modal visible={showChapterModal} transparent animationType="slide" onRequestClose={() => setShowChapterModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={{ fontSize: 17, fontWeight: '700', color: '#F0EDE8' }}>选择章节</Text>
+              <Pressable onPress={() => setShowChapterModal(false)} hitSlop={8}>
+                <MaterialIcons name="close" size={24} color="#9895A0" />
+              </Pressable>
+            </View>
+            <FlatList
+              data={chapters}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item, index }) => (
+                <Pressable
+                  onPress={() => {
+                    setCurrentChIdx(index);
+                    goChapter(item.order);
+                  }}
+                  style={[styles.chapterItem, index === currentChIdx && { backgroundColor: Colors.primary + '30' }]}>
+                  <Text style={{ color: index === currentChIdx ? Colors.primary : '#F0EDE8', fontWeight: index === currentChIdx ? '700' : '500' }}>
+                    {item.title}
+                  </Text>
+                  {index === currentChIdx && <MaterialIcons name="check" size={16} color={Colors.primary} />}
+                </Pressable>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -171,13 +232,22 @@ export function PicaReaderScreen() {
 const styles = StyleSheet.create({
   cont: { flex: 1, backgroundColor: '#000' },
   bar: { position: 'absolute', left: 8, right: 8, borderRadius: 14, backgroundColor: 'rgba(20,20,30,0.85)', overflow: 'hidden' },
-  topBar: { top: Platform.OS === 'ios' ? 50 : 8, paddingHorizontal: 4, paddingVertical: 2, height: BAR_HEIGHT },
+  topBar: { top: Platform.OS === 'ios' ? 50 : 8, },
   bottomBar: { bottom: Platform.OS === 'ios' ? 34 : 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 4, paddingVertical: 2, height: BAR_HEIGHT },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 12 },
-  titleText: { flex: 1, color: '#fff', fontSize: 15, textAlign: 'center', fontWeight: '600', letterSpacing: 0.3 },
+  titleText: { color: '#fff', fontSize: 15, fontWeight: '600', letterSpacing: 0.3 },
   sliderWrap: { flex: 1, alignItems: 'center', gap: 3, paddingHorizontal: 4 },
   sliderTrack: { width: '100%', height: 4, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 3, position: 'relative', justifyContent: 'center' },
   sliderFill: { position: 'absolute', left: 0, top: 0, height: '100%', backgroundColor: Colors.primary, borderRadius: 3 },
   sliderThumb: { position: 'absolute', width: 12, height: 12, borderRadius: 6, backgroundColor: Colors.primary, borderWidth: 2, borderColor: '#fff', top: -4, marginLeft: -6 },
   sliderLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  // 亮度
+  brightTrack: { flex: 1, height: 4, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 3, position: 'relative', justifyContent: 'center' },
+  brightFill: { position: 'absolute', left: 0, top: 0, height: '100%', backgroundColor: Colors.primary, borderRadius: 3 },
+  brightThumb: { position: 'absolute', width: 12, height: 12, borderRadius: 6, backgroundColor: '#fff', top: -4, marginLeft: -6 },
+  // 章节弹窗
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#1A1A24', borderTopLeftRadius: 16, borderTopRightRadius: 16, maxHeight: '70%', paddingBottom: 30 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
+  chapterItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16 },
 });
