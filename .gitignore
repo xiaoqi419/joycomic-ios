@@ -37,3 +37,7 @@ ts-errors.txt
 album_*.json
 
 clone/
+
+.claude
+CLAUDE.md
+AGENTS.md

@@ -3,7 +3,7 @@
 
 import { Platform } from 'react-native';
 
-const REPO = 'xiaoqi419/jmcomic-ios';
+const REPO = 'xiaoqi419/joycomic-ios';
 const CACHE_KEY = '@jmcomic.update_check';
 const CACHE_TTL = 3600_000; // 1 小时
 
