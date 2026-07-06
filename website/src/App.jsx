@@ -1,6 +1,7 @@
 // JOYComic 官网 — HeroUI + 自定义动画
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button, Card, CardTitle, CardDescription } from '@heroui/react';
+import Aurora from './components/Aurora';
 
 const APP_VERSION = '1.0.0';
 
@@ -28,23 +29,32 @@ function AuroraBg() {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     let anim, t = 0;
-    const resize = () => { canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight; };
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
     resize();
     window.addEventListener('resize', resize);
     const draw = () => {
-      t += 0.004;
+      t += 0.008;
       const w = canvas.width, h = canvas.height;
       ctx.clearRect(0, 0, w, h);
-      for (let l = 0; l < 4; l++) {
+      // 多层渐变极光
+      for (let l = 0; l < 3; l++) {
         ctx.beginPath();
         for (let x = 0; x <= w; x += 2) {
-          const y = h * 0.5 + Math.sin(x * 0.008 + t + l) * 25 + Math.sin(x * 0.015 + t * 0.7 + l) * 18;
+          const y = h * (0.3 + l * 0.15) + Math.sin(x * 0.005 + t + l * 2) * (50 + l * 15) + Math.sin(x * 0.01 + t * 0.6 + l) * 25;
           x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
         }
         ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath();
         const g = ctx.createLinearGradient(0, 0, w, 0);
-        g.addColorStop(0, '#E85D3A'); g.addColorStop(0.5, '#FF8C5A'); g.addColorStop(1, '#0A0A0F');
-        ctx.fillStyle = g; ctx.globalAlpha = 0.15 - l * 0.03;
+        g.addColorStop(0, '#E85D3A');
+        g.addColorStop(0.2, '#FF6B4A');
+        g.addColorStop(0.5, '#FF8C5A');
+        g.addColorStop(0.8, '#e040a0');
+        g.addColorStop(1, 'rgba(10,10,15,0)');
+        ctx.fillStyle = g;
+        ctx.globalAlpha = 0.18 - l * 0.04;
         ctx.fill();
       }
       anim = requestAnimationFrame(draw);
@@ -52,7 +62,7 @@ function AuroraBg() {
     draw();
     return () => { cancelAnimationFrame(anim); window.removeEventListener('resize', resize); };
   }, []);
-  return <canvas ref={ref} className="fixed inset-0 pointer-events-none z-0" />;
+  return <canvas ref={ref} style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', display: 'block', pointerEvents: 'none', zIndex: 0 }} />;
 }
 
 /* ===== 浮动粒子 ===== */
@@ -63,7 +73,10 @@ function Particles() {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     let anim;
-    const resize = () => { canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight; };
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
     resize();
     window.addEventListener('resize', resize);
     const pts = Array.from({ length: 80 }, () => ({
@@ -72,7 +85,11 @@ function Particles() {
       s: Math.random() * 2 + 1,
     }));
     const draw = () => {
+      if (canvas.width === 0 || canvas.height === 0) { anim = requestAnimationFrame(draw); return; }
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // DEBUG: green background
+      ctx.fillStyle = 'rgba(0,255,100,0.2)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
       for (const p of pts) {
         p.x += p.vx; p.y += p.vy;
         if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
@@ -96,7 +113,7 @@ function Particles() {
     draw();
     return () => { cancelAnimationFrame(anim); window.removeEventListener('resize', resize); };
   }, []);
-  return <canvas ref={ref} className="fixed inset-0 pointer-events-none z-0" />;
+  return <canvas ref={ref} style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', display: 'block', pointerEvents: 'none', zIndex: 0 }} />;
 }
 
 /* ===== App ===== */
@@ -109,8 +126,10 @@ export default function App() {
 
   return (
     <div className="relative min-h-screen bg-[#07070D] text-[#F0EDE8] overflow-x-hidden">
-      <AuroraBg />
-      <Particles />
+      <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 0, pointerEvents: 'none' }}>
+        <Aurora colorStops={['#E85D3A', '#FF8C5A', '#0A0A0F']} amplitude={0.5} blend={0.5} speed={0.5} />
+        <Particles />
+      </div>
 
       {/* Nav */}
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-400 ${typeof window !== 'undefined' && window.scrollY > 60 ? 'bg-[rgba(7,7,13,0.82)] backdrop-blur-[20px] border-b border-[rgba(255,255,255,0.05)]' : ''}`}>
@@ -132,9 +151,6 @@ export default function App() {
             {/* Hero */}
             <section className="min-h-screen flex flex-col items-center justify-center text-center px-6 pt-[140px] pb-20 relative">
               <div className="relative z-10 max-w-[720px]">
-                <span className="inline-flex items-center px-4 py-[5px] rounded-full bg-[rgba(232,93,58,0.1)] text-[#E85D3A] text-[11px] font-bold tracking-[1.2px] border border-[rgba(232,93,58,0.15)] mb-7 animate-[fadeUp_0.8s_ease-out_0s_both]">
-                  v{APP_VERSION}
-                </span>
                 <h1 className="text-[clamp(44px,9vw,76px)] font-black leading-[1.1] mb-5 bg-gradient-to-r from-[#E85D3A] via-[#FF8C5A] to-[#F0EDE8] bg-clip-text text-transparent animate-[fadeUp_0.8s_ease-out_0.1s_both]">
                   JOYComic
                 </h1>
@@ -142,14 +158,13 @@ export default function App() {
                   聚合双源 · 畅享漫画 · 全功能 iOS 客户端
                 </p>
                 <div className="flex gap-3.5 justify-center flex-wrap animate-[fadeUp_0.8s_ease-out_0.3s_both]">
-                  <Button variant="primary" size="lg" onPress={() => scrollTo(downloadRef)}
-                    style={{ backgroundColor: '#E85D3A', color: '#fff', padding: '16px 34px', fontSize: 15, fontWeight: 600, borderRadius: 14, boxShadow: '0 4px 24px rgba(232,93,58,0.25)' }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  <button onClick={() => scrollTo(downloadRef)}
+                    className="inline-flex items-center gap-2.5 px-8 py-4 rounded-[14px] text-[15px] font-semibold bg-[#E85D3A] text-white border-none cursor-pointer shadow-lg hover:brightness-110 active:scale-[0.97] transition-all duration-200">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                     下载 App
-                  </Button>
+                  </button>
                   <a href="https://github.com/xiaoqi419/joycomic-ios" target="_blank" rel="noreferrer"
-                    style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'16px 34px', borderRadius:14, fontSize:15, fontWeight:600, backgroundColor:'rgba(255,255,255,0.04)', color:'#F0EDE8', border:'1px solid rgba(255,255,255,0.08)', textDecoration:'none' }}
-                    className="hover:bg-[rgba(255,255,255,0.08)] hover:-translate-y-0.5 transition-all">
+                    className="inline-flex items-center gap-2.5 px-8 py-4 rounded-[14px] text-[15px] font-semibold bg-transparent text-[#F0EDE8] border border-[rgba(255,255,255,0.12)] no-underline hover:bg-[rgba(255,255,255,0.06)] active:scale-[0.97] transition-all duration-200">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
                     GitHub
                   </a>

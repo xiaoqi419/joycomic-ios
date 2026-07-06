@@ -1,0 +1,7 @@
+[permissions]
+allow = ["Bash(cd /e/code/jmcomic-ios/website && npx vite build 2>&1)", "Bash(cd /e/code/jmcomic-ios/website && npx vite build --logLevel info 2>&1)", "Bash(echo \"bash test\" > /tmp/bash_test.txt && type /tmp/bash_test.txt)", "Bash(cd E:\\code\\jmcomic-ios && npx tsc --noEmit --pretty false 2>&1 | Select-String -Pattern \"^src/\" | Select-Object -First 10)"]
+
+
+[agent]
+plan_mode_read_only_commands = ["npx vite build", "Select-String image-picker", "Select-String web-browser"]
+
