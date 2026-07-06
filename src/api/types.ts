@@ -258,32 +258,6 @@ export interface VideoDetailData {
   videoSeries: any[];
 }
 
-// ===== 小说 =====
-export interface NovelItem {
-  id: string;
-  title: string;
-  author: string;
-  photo: string;
-  description: string;
-  tags: string[];
-}
-
-export interface NovelChapter {
-  id: string;
-  title: string;
-  sort: string;
-  content?: string;
-}
-
-export interface NovelContent {
-  id: string;
-  name: string;  // API 返回 name 而非 title
-  title?: string; // 兼容旧格式
-  content: string;
-  prev_id?: string;
-  next_id?: string;
-}
-
 // ===== 博客 =====
 export interface BlogItem {
   id: string;

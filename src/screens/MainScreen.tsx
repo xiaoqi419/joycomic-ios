@@ -31,8 +31,7 @@ const AUTO_PLAY_MS = 3000;
 const QUICK_LINKS = [
   { icon: 'flash-on', labelKey: 'banner.latest', route: 'Categories', params: { slug: 'all', sort: 'tf' } },
   { icon: 'whatshot', labelKey: 'banner.hot_ranking', route: 'WeekRank', params: {} },
-  { icon: 'auto-stories', labelKey: 'banner.novels', route: 'Novels', params: {} },
-  { icon: 'video-library', labelKey: 'banner.movies', route: 'Movies', params: {} },
+    { icon: 'video-library', labelKey: 'banner.movies', route: 'Movies', params: {} },
   { icon: 'search', label: '搜索', route: 'Search', params: {} },
   { icon: 'bookmark', labelKey: 'banner.library', route: 'Library', params: {} },
 ];

@@ -98,6 +98,9 @@ export function AboutScreen() {
             <View style={styles.changelogBox}>
               <Text style={styles.changelogText}>{updateInfo.changelog}</Text>
             </View>
+            <Pressable onPress={() => Linking.openURL(GITHUB_REPO + '/releases')} style={{ marginTop: 8 }}>
+              <Text style={{ color: C.primary, fontSize: FontSize.body, fontWeight: '600' }}>查看全部版本 →</Text>
+            </Pressable>
           </View>
         )}
 

@@ -34,7 +34,6 @@ import { ComicDetailScreen } from './src/screens/ComicDetailScreen';
 import { SimpleErrorBoundary as ErrorBoundary } from './src/components/SimpleErrorBoundary';
 import { ReaderScreen } from './src/screens/ReaderScreen';
 import { MoviesScreen, MoviePlayerScreen } from './src/screens/MoviesScreen';
-import { NovelsScreen, NovelDetailScreen, NovelReaderScreen } from './src/screens/NovelsScreen';
 import { BlogsScreen, BlogDetailScreen } from './src/screens/BlogsScreen';
 
 import { LibraryScreen } from './src/screens/LibraryScreen';
@@ -145,14 +144,7 @@ function AppInner() {
         <Stack.Screen name="ComicDetail" component={ComicDetailWrapper}
           options={{ title: '详情', headerBackTitle: '返回' }} />
         <Stack.Screen name="Reader" component={ReaderScreen}
-          options={{ headerShown: false, orientation: 'default' as const }} />
-        <Stack.Screen name="Novels" component={NovelsScreen}
-          options={{ headerShown: false }} />
-        <Stack.Screen name="NovelDetail" component={NovelDetailScreen}
-          options={{ headerShown: false }} />
-        <Stack.Screen name="NovelReader" component={NovelReaderScreen}
-          options={{ headerShown: false }} />
-        <Stack.Screen name="MoviePlayer" component={MoviePlayerScreen}
+          options={{ headerShown: false, orientation: 'default' as const }} />        <Stack.Screen name="MoviePlayer" component={MoviePlayerScreen}
           options={{ headerShown: false }} />
         <Stack.Screen name="PicaDetail" component={PicaDetailWrapper}
           options={{ title: '详情', headerBackTitle: '返回' }} />

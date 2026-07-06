@@ -232,7 +232,7 @@ export function PicaReaderScreen() {
 const styles = StyleSheet.create({
   cont: { flex: 1, backgroundColor: '#000' },
   bar: { position: 'absolute', left: 8, right: 8, borderRadius: 14, backgroundColor: 'rgba(20,20,30,0.85)', overflow: 'hidden' },
-  topBar: { top: Platform.OS === 'ios' ? 50 : 8, },
+  topBar: { top: Platform.OS === 'ios' ? 0 : 0, },
   bottomBar: { bottom: Platform.OS === 'ios' ? 34 : 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 4, paddingVertical: 2, height: BAR_HEIGHT },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 12 },
   titleText: { color: '#fff', fontSize: 15, fontWeight: '600', letterSpacing: 0.3 },

@@ -12,7 +12,6 @@ import type {
   CommentItem, CommentReply, FavoriteData, FavoriteFolder,
   LoginData, MemberData, SignData, AchievementData,
   MovieItem, VideoDetailData,
-  NovelItem, NovelChapter, NovelContent,
   BlogItem, ForumPost, GameItem, GameData,
   NotificationItem, ComicItem,
 } from './types';
@@ -311,20 +310,6 @@ export async function fetchVideoDetail(vid: string): Promise<VideoDetailData> {
   try { return await encryptedGet<VideoDetailData>('video', { vid }); } catch {}
   try { return await encryptedGet<VideoDetailData>('video', { id: vid }); } catch {}
   return { video: null as any, related_videos: [], videoSeries: [] };
-}
-
-export async function fetchNovels(page = 1, searchQuery?: string): Promise<{ list: NovelItem[]; total: string }> {
-  const params: Record<string, any> = { page };
-  if (searchQuery) params.filter = searchQuery;
-  return encryptedGet('novels', params);
-}
-
-export async function fetchNovelDetail(novelId: string): Promise<{ novel: NovelItem; series: NovelChapter[] }> {
-  return encryptedGet('novel', { nid: novelId });
-}
-
-export async function fetchNovelContent(chapterId: string): Promise<NovelContent> {
-  return encryptedGet<NovelContent>('novelchapters', { ncid: chapterId });
 }
 
 export async function fetchBlogs(page = 1): Promise<{ list: BlogItem[]; total: string }> {

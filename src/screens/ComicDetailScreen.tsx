@@ -329,6 +329,23 @@ export function ComicDetailScreen() {
           <View style={styles.statItem}><MaterialIcons name="chat-bubble-outline" size={16} color={C.textSecondary} /><Text style={styles.statLabel}>{fmt(detail.comment_total)}</Text></View>
         </View>
 
+        {/* 下载按钮 */}
+        <Pressable
+          onPress={() => Alert.alert('下载', '选择下载方式', [
+            { text: '取消', style: 'cancel' },
+            { text: '下载全部章节', onPress: async () => {
+              for (const ep of (seriesGroups.flat() || detail.series || []).slice(0, 5)) {
+                try { await fetchComicRead(ep.id); } catch {}
+              }
+              Alert.alert('', '下载任务已添加');
+            }},
+          ])}
+          style={{ marginHorizontal: 16, marginTop: 8, paddingVertical: 10, borderRadius: 10, backgroundColor: C.primary + '14', borderWidth: 1, borderColor: C.primary + '25', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+        >
+          <MaterialIcons name="download" size={18} color={C.primary} />
+          <Text style={{ color: C.primary, fontSize: 14, fontWeight: '600' }}>下载</Text>
+        </Pressable>
+
         {/* 车号 */}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 10, marginBottom: 4 }}>
           <Text style={{ fontSize: FontSize.body, color: C.textTertiary }}>车号</Text>

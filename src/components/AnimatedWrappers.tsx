@@ -42,7 +42,7 @@ export function AnimatePressable({ children, style, ...props }: PressableProps &
           transition={{ type: 'spring', duration: 150 }}
           style={style}
         >
-          {children}
+          {children as React.ReactNode}
         </MotiView>
       )}
     </Pressable>

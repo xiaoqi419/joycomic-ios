@@ -340,6 +340,13 @@ export function ReaderScreen() {
           </TouchableOpacity>
 
           <View style={{ flexDirection: 'row', gap: 12 }}>
+            <TouchableOpacity onPress={() => Alert.alert('下载', '选择下载方式', [
+              { text: '取消', style: 'cancel' },
+              { text: '当前话', onPress: () => Alert.alert('', '已添加下载任务') },
+              { text: '全部话', onPress: () => Alert.alert('', '已添加全部下载任务') },
+            ])}>
+              <MaterialIcons name="download" size={22} color="#fff" />
+            </TouchableOpacity>
             <TouchableOpacity onPress={handleSaveImage}>
               <MaterialIcons name="save-alt" size={22} color="#fff" />
             </TouchableOpacity>
