@@ -33,7 +33,6 @@ const QUICK_LINKS = [
   { icon: 'whatshot', labelKey: 'banner.hot_ranking', route: 'WeekRank', params: {} },
     { icon: 'video-library', labelKey: 'banner.movies', route: 'Movies', params: {} },
   { icon: 'search', label: '搜索', route: 'Search', params: {} },
-  { icon: 'image', label: '以图搜图', route: 'ImageSearch', params: {} },
   { icon: 'bookmark', labelKey: 'banner.library', route: 'Library', params: {} },
 ];
 

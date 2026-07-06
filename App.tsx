@@ -46,7 +46,7 @@ import { PicaCategoryResultScreen } from './src/screens/PicaCategoryResultScreen
 import { PicaCreatorResultScreen } from './src/screens/PicaCreatorResultScreen';
 import { PicaReaderScreen } from './src/screens/PicaReaderScreen';
 import { AboutScreen } from './src/screens/AboutScreen';
-import { ImageSearchScreen } from './src/screens/ImageSearchScreen';
+// import { ImageSearchScreen } from './src/screens/ImageSearchScreen';
 import { DownloadListScreen } from './src/screens/DownloadListScreen';
 
 const Stack = createNativeStackNavigator();
@@ -169,8 +169,8 @@ function AppInner() {
           options={{ presentation: 'modal', headerShown: false }} />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen}
           options={{ presentation: 'modal', headerShown: false }} />
-        <Stack.Screen name="ImageSearch" component={ImageSearchScreen}
-          options={{ title: '以图搜图', headerBackTitle: '返回' }} />
+        {/* <Stack.Screen name="ImageSearch" component={ImageSearchScreen}
+          options={{ title: '以图搜图', headerBackTitle: '返回' }} /> */}
         <Stack.Screen name="About" component={AboutScreen}
           options={{ headerShown: false }} />
         <Stack.Screen name="DownloadList" component={DownloadListScreen}
