@@ -29,7 +29,7 @@ function formatTime(addtime: string): string {
 }
 
 export function ComicCommentScreen({ route, navigation }: Props) {
-  const { albumId, total } = route.params as { albumId: string; total?: number };
+  const { albumId, total } = route.params || {};
   const nav = navigation || useNavigation();
   const { colors } = useAppTheme();
   const { width: screenWidth } = useWindowDimensions();
