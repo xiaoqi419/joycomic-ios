@@ -48,7 +48,6 @@
   "devDependencies": {
     "@types/crypto-js": "^4.2.2",
     "@types/react": "~19.1.0",
-    "babel-plugin-react-native": "^2.0.0",
     "babel-plugin-transform-remove-console": "^6.9.4",
     "expo-atlas": "^0.4.3",
     "typescript": "~5.6.0"
