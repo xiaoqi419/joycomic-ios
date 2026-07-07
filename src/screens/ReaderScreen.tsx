@@ -14,7 +14,6 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useReaderStore } from '../store/useReader';
 import { useHistoryStore } from '../store/useHistory';
 import { useSettingsStore } from '../store/useSettings';
-import { usePicaStore } from '../store/usePica';
 import { fetchComicRead, fetchAlbumDetail } from '../api/endpoints';
 import { picaSource } from '../sources/pica';
 import * as Brightness from 'expo-brightness';
@@ -66,8 +65,8 @@ export function ReaderScreen() {
   const shunts = useSettingsStore((s) => s.shunts);
   const selectShunt = useSettingsStore((s) => s.selectShunt);
   const selectedShuntKey = useSettingsStore((s) => s.selectedShuntKey);
-  const picaApiSource = usePicaStore((s) => s.apiSource);
-  const setPicaApiSource = usePicaStore((s) => s.setApiSource);
+  const picaApiSource = 'go2778';
+  const setPicaApiSource = () => {};
   const [brightness, setBrightnessVal] = useState(1);
   const flatRef = useRef<FlatList>(null);
   const [imageHeights, setImageHeights] = useState<Record<number, number>>({});
