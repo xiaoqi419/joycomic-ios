@@ -34,9 +34,8 @@ export function LibraryScreen() {
   const C = useLegacyColors();
   const styles = useMemo(() => getStyles(C), [C]);
   const { loggedIn } = useAuthStore();
-  const { local, loadLocal } = useFavoritesStore();
+  const { local, loadLocal, folders: storeFolders, createFolder, renameFolder, deleteFolder, loadFolders } = useFavoritesStore();
   const [items, setItems] = useState<any[]>([]);
-  const [folders, setFolders] = useState<FavoriteFolder[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -51,18 +50,18 @@ export function LibraryScreen() {
     : (type === 'like' ? '我的喜欢' : '我的收藏');
 
   const loadData = useCallback(async (silent = false) => {
+    if (source === 'jm') loadLocal();
+
     if (!loggedIn && source === 'jm') {
       if (!silent) {
-        Alert.alert('提示', '请先登录后再查看收藏', [
-          { text: '取消', onPress: () => nav.goBack() },
+        Alert.alert('提示', '未登录状态下仅显示本地收藏', [
+          { text: '好的' },
           { text: '去登录', onPress: () => nav.navigate('Member') },
         ]);
       }
       if (!silent) setLoading(false);
       return;
     }
-
-    if (source === 'jm') loadLocal();
 
     try {
       if (source === 'pica') {
@@ -75,7 +74,6 @@ export function LibraryScreen() {
         const folderId = selectedFolder || '0';
         const d = await fetchFavorites({ page: 1, o, folder_id: folderId });
         setItems(d.list || []);
-        setFolders(d.folder_list || []);
         setTotal(parseInt(d.total) || 0);
       }
     } catch {}
@@ -98,7 +96,7 @@ export function LibraryScreen() {
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) return;
     try {
-      await apiCreateFolder(newFolderName.trim());
+      await createFolder(newFolderName.trim());
       setNewFolderName('');
       setShowNewFolder(false);
       loadData(true);
@@ -108,7 +106,7 @@ export function LibraryScreen() {
   const handleRenameFolder = async () => {
     if (!renameFolderId || !renameText.trim()) return;
     try {
-      await apiRenameFolder(renameFolderId, renameText.trim());
+      await renameFolder(renameFolderId, renameText.trim());
       setRenameFolderId(null);
       setRenameText('');
       loadData(true);
@@ -119,7 +117,7 @@ export function LibraryScreen() {
     Alert.alert('删除文件夹', '确定删除？文件夹内的收藏不会丢失', [
       { text: '取消', style: 'cancel' },
       { text: '删除', style: 'destructive', onPress: async () => {
-        await apiDeleteFolder(fid);
+        await deleteFolder(fid);
         if (selectedFolder === fid) setSelectedFolder(null);
         loadData(true);
       }},

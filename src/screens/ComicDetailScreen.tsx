@@ -222,14 +222,17 @@ export function ComicDetailScreen() {
   };
 
   const handleFolderSelect = async (folderId?: string) => {
-    await toggle(albumId);
-    if (folderId) {
-      await moveToFolder(folderId, albumId);
-    }
-    addLocal({
-      id: albumId, title: detail?.name || '', coverUrl: getCoverUrl(albumId),
-      author: Array.isArray(detail?.author) ? detail.author.join(', ') : String(detail?.author || ''), addedAt: Date.now(),
-    });
+    try {
+      const ok = await toggle(albumId);
+      if (ok === false) { Alert.alert('', '收藏失败'); return; }
+      if (folderId) {
+        await moveToFolder(folderId, albumId);
+      }
+      addLocal({
+        id: albumId, title: detail?.name || '', coverUrl: getCoverUrl(albumId),
+        author: Array.isArray(detail?.author) ? detail.author.join(', ') : String(detail?.author || ''), addedAt: Date.now(),
+      });
+    } catch { Alert.alert('', '收藏失败'); }
     setShowFolderPicker(false);
   };
 
