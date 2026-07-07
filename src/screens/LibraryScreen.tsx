@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLegacyColors, LegacyColors, Radius, Spacing, FontSize, Shadow } from '../theme';
 import { useAuthStore } from '../store/useAuth';
+import { usePicaStore } from '../store/usePica';
 import { useFavoritesStore } from '../store/useFavorites';
 import { fetchFavorites, getCoverUrl as getCover, createFolder as apiCreateFolder, deleteFolder as apiDeleteFolder, renameFolder as apiRenameFolder } from '../api/endpoints';
 import { myFavourites, myLikes } from '../pica/endpoints';
@@ -33,7 +34,9 @@ export function LibraryScreen() {
   const { t } = useTranslation();
   const C = useLegacyColors();
   const styles = useMemo(() => getStyles(C), [C]);
-  const { loggedIn } = useAuthStore();
+  const { loggedIn: jmLoggedIn } = useAuthStore();
+  const { loggedIn: picaLoggedIn } = usePicaStore();
+  const loggedIn = source === 'pica' ? picaLoggedIn : jmLoggedIn;
   const { local, loadLocal, folders, createFolder, renameFolder, deleteFolder, loadFolders } = useFavoritesStore();
   const [items, setItems] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
@@ -132,6 +135,7 @@ export function LibraryScreen() {
     <SafeAreaView edges={["top"]} style={styles.cont}>
       <FlashList
         data={displayItems}
+        estimatedItemSize={120}
         keyExtractor={(i) => i.id || i._id}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.primary} colors={[C.primary]} />}
         contentContainerStyle={{ padding: Spacing.marginEdge, paddingBottom: 100 }}
