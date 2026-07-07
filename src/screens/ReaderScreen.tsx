@@ -379,7 +379,7 @@ export function ReaderScreen() {
               }}>
                 <MaterialIcons name="download" size={22} color="#fff" />
               </TouchableOpacity>
-              {source === 'jm' && episodes.length > 0 && (
+              {episodes.length > 0 && (
                 <TouchableOpacity onPress={() => setShowChapterModal(true)}><MaterialIcons name="format-list-numbered" size={22} color="#fff" /></TouchableOpacity>
               )}
               <TouchableOpacity onPress={() => setAutoPageRunning(!autoPageRunning)}>

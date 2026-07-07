@@ -72,7 +72,8 @@ export function LibraryScreen() {
     // JM 源：本地 + 云端合并
     await loadLocal();
     let cloudItems: any[] = [];
-    let localItems = local.map((f: any) => ({ ...f, _source: 'local' as const }));
+    const storeState = useFavoritesStore.getState();
+    let localItems = storeState.local.map((f: any) => ({ ...f, _source: 'local' as const }));
 
     if (loggedIn) {
       try {

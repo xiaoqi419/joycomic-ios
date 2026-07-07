@@ -85,6 +85,8 @@ export const picaSource: ComicSource = {
       description: info.description || '',
       tags: Array.isArray(info.tags) ? info.tags : [],
       chapters,
+      isFavourite: info.isFavourite,
+      isLiked: info.isLiked,
       likesCount: info.likesCount,
       totalLikes: info.totalLikes,
       viewsCount: info.viewsCount,

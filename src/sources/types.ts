@@ -31,6 +31,8 @@ export interface SourceDetail {
   tags: string[];
   chapters: SourceChapter[];
   source: SourceId;
+  isFavourite?: boolean;
+  isLiked?: boolean;
   likesCount?: number;
   totalLikes?: number;
   viewsCount?: number;

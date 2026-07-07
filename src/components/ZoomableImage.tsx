@@ -21,12 +21,13 @@ export function ZoomableImage({ children }: Props) {
 
   const pinch = Gesture.Pinch()
     .onStart(() => {
-      // curScale already tracks current value
     })
     .onUpdate((e) => {
-      const next = Math.max(1, Math.min(3, curScale.current * e.scale));
-      scale.setValue(next);
-      curScale.current = next;
+      try {
+        const next = Math.max(1, Math.min(3, curScale.current * e.scale));
+        scale.setValue(next);
+        curScale.current = next;
+      } catch {}
     });
 
   const doubleTap = Gesture.Tap()

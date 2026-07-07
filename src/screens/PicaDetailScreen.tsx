@@ -160,27 +160,24 @@ export function PicaDetailScreen() {
           <View style={styles.statItem}><MaterialIcons name="chat-bubble-outline" size={14} color={C.textTertiary} /><Text style={styles.statLabel}>{detail.commentsCount ?? 0}</Text></View>
         </View>
         {/* 操作 */}
-        <View style={styles.actionRow}>
+                <View style={styles.actionRow}>
           <Pressable style={styles.actionBtn} onPress={async () => {
             try {
               await likeComic(comicId);
-              Alert.alert('', '已点赞');
-            } catch { Alert.alert('', '点赞失败'); }
-          }}><MaterialIcons name="favorite-outline" size={18} color={C.primary} /><Text style={styles.actionText}>点赞</Text></Pressable>
+              setDetail({ ...detail, isLiked: !detail?.isLiked } as any);
+            } catch {}
+          }}><MaterialIcons name={detail?.isLiked ? 'favorite' : 'favorite-outline'} size={18} color={detail?.isLiked ? '#e74c3c' : C.primary} /><Text style={styles.actionText}>{detail?.isLiked ? '已点赞' : '点赞'}</Text></Pressable>
           <Pressable style={styles.actionBtn} onPress={async () => {
             try {
               await favouriteComic(comicId);
-              addLocal({
-                id: comicId, title: detail?.title || '', coverUrl: (detail as any)?.coverUrl || '', author: detail?.author || '', addedAt: Date.now(),
-              });
-              Alert.alert('', '已收藏');
+              const next = !detail?.isFavourite;
+              setDetail({ ...detail, isFavourite: next } as any);
+              if (next) addLocal({ id: comicId, title: detail?.title || '', coverUrl: (detail as any)?.coverUrl || '', author: detail?.author || '', addedAt: Date.now() });
             } catch {
-              addLocal({
-                id: comicId, title: detail?.title || '', coverUrl: (detail as any)?.coverUrl || '', author: detail?.author || '', addedAt: Date.now(),
-              });
-              Alert.alert('', '收藏失败，已保存到本地');
+              addLocal({ id: comicId, title: detail?.title || '', coverUrl: (detail as any)?.coverUrl || '', author: detail?.author || '', addedAt: Date.now() });
             }
-          }}><MaterialIcons name="bookmark-outline" size={18} color={C.primary} /><Text style={styles.actionText}>收藏</Text></Pressable>
+          }}><MaterialIcons name={detail?.isFavourite ? 'bookmark' : 'bookmark-outline'} size={18} color={detail?.isFavourite ? '#E85D3A' : C.primary} /><Text style={styles.actionText}>{detail?.isFavourite ? '已收藏' : '收藏'}</Text></Pressable>
+          <Pressable style={styles.actionBtn} onPress={handleDownload}><MaterialIcons name="download" size={18} color={C.primary} /><Text style={styles.actionText}>下载</Text></Pressable>
           <Pressable style={styles.actionBtn} onPress={handleDownload}><MaterialIcons name="download" size={18} color={C.primary} /><Text style={styles.actionText}>下载</Text></Pressable>
         </View>
         {/* 开始阅读 */}
