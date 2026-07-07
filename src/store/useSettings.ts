@@ -64,7 +64,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   language: 'zh',
   darkMode: true,
   theme: 'auto',
-  readingMode: 'page',
+  readingMode: 'scroll',
   readingDirection: 'ltr',
   showDebugLog: false,
   prefetchCount: 3,
