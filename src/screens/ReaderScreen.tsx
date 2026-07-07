@@ -25,12 +25,18 @@ import { ReaderSettingsModal } from '../components/ReaderSettingsModal';
 import { ZoomableImage } from '../components/ZoomableImage';
 import type { Episode } from '../api/types';
 
-const { width: W, height: H } = Dimensions.get('window');
 const ANIM_DUR = 150;
+let _W: number = 0;
+let _H: number = 0;
 
 type ReaderSource = 'jm' | 'pica';
 
 export function ReaderScreen() {
+  // 延迟获取屏幕尺寸
+  const dim = Dimensions.get('window');
+  const W = dim.width || 390;
+  const H = dim.height || 750;
+  _W = W; _H = H;
   const nav = useNavigation<any>();
   const route = useRoute<any>();
   const params = route.params || {};
