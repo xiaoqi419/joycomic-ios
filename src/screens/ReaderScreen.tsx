@@ -23,7 +23,6 @@ import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
 import { downloadManager } from '../utils/DownloadManager';
 import { ReaderSettingsModal } from '../components/ReaderSettingsModal';
-import { ZoomableImage } from '../components/ZoomableImage';
 import type { Episode } from '../api/types';
 
 const ANIM_DUR = 150;
@@ -37,12 +36,7 @@ const ImageItem = React.memo(({ item, index, isVertical, imageHeight, source, ch
   item: string; index: number; isVertical: boolean; imageHeight: number; source: string; chapterId: string; imageLayout: string; onLoad: (index: number, h: number) => void;
 }) => (
   <View style={{ width: W }}>
-    <ZoomableImage uri={item}
-      epsId={source === 'jm' ? chapterId : undefined}
-      pictureName={source === 'jm' ? item.split('/').pop()?.split('.')[0] : undefined}
-      containerWidth={W}
-    >
-      {source === 'jm' ? (
+    {source === 'jm' ? (
         <SafeImage imageUrl={item} epsId={chapterId}
           pictureName={item.split('/').pop()?.split('.')[0] || ''}
           containerWidth={W}
@@ -61,7 +55,6 @@ const ImageItem = React.memo(({ item, index, isVertical, imageHeight, source, ch
           }}
         />
       )}
-    </ZoomableImage>
   </View>
 ));
 
