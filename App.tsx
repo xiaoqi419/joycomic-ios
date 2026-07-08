@@ -236,19 +236,18 @@ export default function App() {
 
       try { const { cleanImageCache } = await import('./src/utils/ImageCache'); cleanImageCache(); } catch {}
 
+      // 先用缓存的 shunts 显示首页，后台拉取最新
+      setReady(true);
+
       try {
         const setting = await fetchSetting();
         updateFromSetting(setting);
-        if (saved !== null) {
-          selectShunt(saved);
-        }
+        if (saved !== null) selectShunt(saved);
       } catch {}
 
       try { logger.init(); } catch {}
       try { downloadManager.init(); } catch {}
       try { await useHistoryStore.getState().load(); } catch {}
-
-      setReady(true);
     })();
   }, []);
 
