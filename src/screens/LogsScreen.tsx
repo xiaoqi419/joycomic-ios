@@ -120,9 +120,10 @@ const s = StyleSheet.create({
   chip: {
     paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10,
     backgroundColor: 'rgba(128,128,128,0.12)', marginRight: 5,
+    alignItems: 'center', justifyContent: 'center',
   },
   chipActive: { backgroundColor: '#E85D3A' },
-  chipText: { color: '#9895A0', fontSize: 11, fontWeight: '600' },
+  chipText: { color: '#9895A0', fontSize: 11, fontWeight: '600', textAlign: 'center', lineHeight: 14 },
   chipTextActive: { color: '#fff' },
   card: {
     borderRadius: 8, padding: 10, marginBottom: 6,
