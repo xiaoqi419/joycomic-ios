@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, Pressable, StyleSheet, ActivityIndicator,
-  Clipboard, Alert, Platform,
+  Clipboard, Alert, Platform, Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -56,6 +56,16 @@ export function LogsScreen() {
         <Text style={{ color: C.textPrimary, fontSize: 18, fontWeight: '700' }}>日志</Text>
         <View style={{ flexDirection: 'row', gap: 6 }}>
           <Pressable onPress={loadLogs} style={{ padding: 6 }}><MaterialIcons name="refresh" size={20} color={C.primary} /></Pressable>
+                    <Pressable onPress={async () => {
+            const fileLogs = await logger.loadFromFile();
+            const all = [...fileLogs, ...logger.getEntries()]
+              .sort((a, b) => b.time - a.time)
+              .map((e) => JSON.stringify(e))
+              .join('\n');
+            await Share.share({ message: all || '无日志', title: 'JOYComic 日志' });
+          }} style={{ padding: 6 }}>
+            <MaterialIcons name="file-upload" size={20} color={C.primary} />
+          </Pressable>
           <Pressable onPress={async () => { await logger.clear(); setEntries([]); }} style={{ padding: 6 }}><MaterialIcons name="delete-sweep" size={20} color={C.error} /></Pressable>
         </View>
       </View>
