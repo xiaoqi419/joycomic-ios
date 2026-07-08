@@ -43,18 +43,32 @@ async function encryptedPost<T>(path: string, f?: Record<string, string | number
 // 注意: 路径无 /api/ 前缀，直接拼接在域名后
 
 export async function fetchSetting(customUrl?: string): Promise<SettingData> {
-  // 自定义 CDN 优先
+  // 并行取 CDN + JM API，取时间最新的那个
+  const results: SettingData[] = [];
+
   if (customUrl) {
     try {
       const ctrl = new AbortController();
-      setTimeout(() => ctrl.abort(), 3000);
+      setTimeout(() => ctrl.abort(), 4000);
       const res = await fetch(customUrl, { signal: ctrl.signal });
-      if (res.ok) return (await res.json()).data;
+      if (res.ok) results.push((await res.json()).data);
     } catch {}
   }
-  try { return await encryptedGet<SettingData>('setting'); } catch {}
-  const res = await apiClient.getWeb('setting');
-  return JSON.parse(res).data;
+
+  try {
+    const jm = await encryptedGet<SettingData>('setting');
+    results.push(jm);
+  } catch {
+    try {
+      const res = await apiClient.getWeb('setting');
+      results.push(JSON.parse(res).data);
+    } catch {}
+  }
+
+  // 选最新（按 dateYmdHis 比较）
+  if (results.length === 0) throw new Error('fetchSetting failed');
+  results.sort((a, b) => (b.dateYmdHis || '').localeCompare(a.dateYmdHis || ''));
+  return results[0];
 }
 
 export async function fetchMainPromote(): Promise<PromoteItem[]> {
