@@ -63,6 +63,7 @@ export function ComicDetailScreen() {
   const [hasMoreComments, setHasMoreComments] = useState(true);
   const [loadingMoreComments, setLoadingMoreComments] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
+  const loadingMoreRef = useRef(false);
 
   useEffect(() => {
     load();
@@ -118,18 +119,26 @@ export function ComicDetailScreen() {
 
   /** 加载更多评论（无限滚动） */
   const loadMoreComments = useCallback(async () => {
-    if (loadingMoreComments || !hasMoreComments) return;
+    if (loadingMoreRef.current || !hasMoreComments) return;
+    loadingMoreRef.current = true;
     setLoadingMoreComments(true);
     try {
       const np = commentPage + 1;
       const data = await fetchComments(albumId, np);
       const list = data.list || [];
       if (list.length < 20) setHasMoreComments(false);
-      setComments((prev) => [...prev, ...list]);
+      if (list.length === 0) { setHasMoreComments(false); setLoadingMoreComments(false); return; }
+      // 去重：按 id 过滤已存在的评论
+      setComments((prev) => {
+        const ids = new Set(prev.map((c) => c.id));
+        const newItems = list.filter((c: any) => !ids.has(c.id));
+        return [...prev, ...newItems];
+      });
       setCommentPage(np);
     } catch {}
     setLoadingMoreComments(false);
-  }, [commentPage, hasMoreComments, loadingMoreComments, albumId]);
+    loadingMoreRef.current = false;
+  }, [commentPage, hasMoreComments, albumId]);
 
   const openChapter = async (chId: string, chName: string, initialPage = 0) => {
     try {
