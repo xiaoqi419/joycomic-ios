@@ -32,6 +32,38 @@ let _H: number = 0;
 
 type ReaderSource = 'jm' | 'pica';
 
+const ImageItem = React.memo(({ item, index, isVertical, imageHeight, source, chapterId, imageLayout, onLoad }: {
+  item: string; index: number; isVertical: boolean; imageHeight: number; source: string; chapterId: string; imageLayout: string; onLoad: (index: number, h: number) => void;
+}) => (
+  <View style={{ width: W }}>
+    <ZoomableImage uri={item}
+      epsId={source === 'jm' ? chapterId : undefined}
+      pictureName={source === 'jm' ? item.split('/').pop()?.split('.')[0] : undefined}
+      containerWidth={W}
+    >
+      {source === 'jm' ? (
+        <SafeImage imageUrl={item} epsId={chapterId}
+          pictureName={item.split('/').pop()?.split('.')[0] || ''}
+          containerWidth={W}
+          style={{ width: W, height: isVertical ? (imageHeight || W * 1.4) : H }}
+        />
+      ) : (
+        <Image source={{ uri: item }}
+          style={{ width: W, height: isVertical ? (imageHeight || W * 1.4) : H }}
+          contentFit={imageLayout === 'contain' ? 'contain' : imageLayout === 'fitWidth' ? 'cover' : 'contain'}
+          onLoad={(e) => {
+            const src = (e as any).source || {};
+            const rh = src.height || H;
+            const rw = src.width || W;
+            const ratio = Math.min(rh / rw, 3);
+            if (W * ratio > H * 0.3) onLoad(index, W * ratio);
+          }}
+        />
+      )}
+    </ZoomableImage>
+  </View>
+));
+
 export function ReaderScreen() {
   // 延迟获取屏幕尺寸
   const dim = Dimensions.get('window');
@@ -192,36 +224,13 @@ export function ReaderScreen() {
     } else toggleUI();
   }, [currentIdx, pages.length, toggleUI, showUI]);
 
-  const renderItem = ({ item, index }: { item: string; index: number }) => (
-    <View style={{ width: W }}>
-      <ZoomableImage uri={item}
-        epsId={source === 'jm' ? chapterId : undefined}
-        pictureName={source === 'jm' ? item.split('/').pop()?.split('.')[0] : undefined}
-        containerWidth={W}
-        onDimension={source === 'jm' ? (w, h) => { if (w > 0 && h > 0) setImageHeights((p) => ({ ...p, [index]: (W * h) / w })); } : undefined}
-      >
-        {source === 'jm' ? (
-          <SafeImage imageUrl={item} epsId={chapterId}
-            pictureName={item.split('/').pop()?.split('.')[0] || ''}
-            containerWidth={W}
-            style={{ width: W, height: isVertical ? (imageHeights[index] || W * 1.4) : H }}
-          />
-        ) : (
-          <Image source={{ uri: item }}
-            style={{ width: W, height: isVertical ? (imageHeights[index] || W * 1.4) : H }}
-            contentFit={imageLayout === 'contain' ? 'contain' : imageLayout === 'fitWidth' ? 'cover' : 'contain'}
-            onLoad={(e) => {
-              const src = (e as any).source || {};
-              const rh = src.height || H;
-              const rw = src.width || W;
-              const ratio = Math.min(rh / rw, 3);
-              if (W * ratio > H * 0.3) setImageHeights((p) => ({ ...p, [index]: W * ratio }));
-            }}
-          />
-        )}
-      </ZoomableImage>
-    </View>
-  );
+  const handleImageLoad = useCallback((index: number, h: number) => {
+    setImageHeights((prev) => (prev[index] === h ? prev : { ...prev, [index]: h }));
+  }, []);
+
+  const renderItem = useCallback(({ item, index }: { item: string; index: number }) => (
+    <ImageItem item={item} index={index} isVertical={isVertical} imageHeight={imageHeights[index]} source={source} chapterId={chapterId} imageLayout={imageLayout} onLoad={handleImageLoad} />
+  ), [isVertical, imageHeights, source, chapterId, imageLayout]);
 
   const totalPages = pages.length;
 
@@ -380,7 +389,7 @@ export function ReaderScreen() {
                 ]);
               }}>
                 <MaterialIcons name="download" size={22} color="#fff" />
-              </TouchableOpacity>
+              </TouchableOpacity>
               {episodes.length > 0 && (
                 <TouchableOpacity onPress={() => setShowChapterModal(true)}><MaterialIcons name="format-list-numbered" size={22} color="#fff" /></TouchableOpacity>
               )}
