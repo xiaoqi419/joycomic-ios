@@ -253,13 +253,13 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (ready && savedShunt === null) {
+    if (ready) {
       const { shunts } = useSettingsStore.getState();
       if (shunts.length > 0) {
         setShowSourceSelect(true);
       }
     }
-  }, [ready, savedShunt]);
+  }, [ready]);
 
   if (!ready) {
     const { colors } = useSettingsStore.getState().theme === 'light'

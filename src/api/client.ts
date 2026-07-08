@@ -111,7 +111,7 @@ export class ApiClient {
 
     const headers = this.buildHeaders(ts, isMobile);
     const ctrl = new AbortController();
-    const tid = setTimeout(() => ctrl.abort(), 15000);
+    const tid = setTimeout(() => ctrl.abort(), 5000);
     try {
       const opt: RequestInit = { method, headers, signal: ctrl.signal };
       if (config.form && method === 'POST') {

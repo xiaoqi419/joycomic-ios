@@ -61,7 +61,7 @@ export function LogsScreen() {
       </View>
 
       {/* 分级过滤 — 紧凑一排 */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingLeft: 14, marginBottom: 6 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingLeft: 14, marginBottom: 6, maxHeight: 32 }}>
         {[{ key: null, label: 'ALL' } as any, ...levels.map((l) => ({ key: l, label: l.toUpperCase() }))].map((item) => (
           <Pressable key={item.key || 'all'} onPress={() => setFilter(item.key)} style={[s.chip, filter === item.key && s.chipActive]}>
             <Text style={[s.chipText, filter === item.key && s.chipTextActive]}>{item.label}</Text>
