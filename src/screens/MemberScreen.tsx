@@ -2,7 +2,7 @@
 // @author Jason
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet, Alert, TextInput } from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet, Alert, TextInput, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
