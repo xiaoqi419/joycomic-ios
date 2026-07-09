@@ -36,6 +36,8 @@ export function MemberScreen() {
 
   const [showPicaLogin, setShowPicaLogin] = useState(false);
   const [picaUserInput, setPicaUserInput] = useState('');
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [configUrlDraft, setConfigUrlDraft] = useState('');
   const [picaPassInput, setPicaPassInput] = useState('');
   const [picaLoginLoading, setPicaLoginLoading] = useState(false);
 
@@ -398,13 +400,42 @@ export function MemberScreen() {
             } />
           </Pressable>
                     <Row label="自定义配置地址" right={
-            <TextInput
-              style={{ width: 140, textAlign: 'right', color: C.textSecondary, fontSize: 13, paddingVertical: 0 }}
-              placeholder="空=使用默认" placeholderTextColor={C.textTertiary}
-              value={customConfigUrl} onChangeText={setCustomConfigUrl}
-              autoCapitalize="none" autoCorrect={false}
-            />
+            <Pressable onPress={() => {
+              setConfigUrlDraft(customConfigUrl);
+              setShowConfigModal(true);
+            }} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text style={[styles.rowValue, { fontSize: 13, maxWidth: 140 }]} numberOfLines={1}>
+                {customConfigUrl || '未设置'}
+              </Text>
+              <MaterialIcons name="chevron-right" size={18} color={C.textTertiary} />
+            </Pressable>
           } />
+
+          {/* 配置地址弹窗 */}
+          <Modal visible={showConfigModal} transparent animationType="fade" onRequestClose={() => setShowConfigModal(false)}>
+            <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }} onPress={() => setShowConfigModal(false)} />
+            <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: C.surface, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 20, paddingBottom: 40 }}>
+              <Text style={{ color: C.textPrimary, fontSize: 18, fontWeight: '700', marginBottom: 4 }}>自定义配置地址</Text>
+              <Text style={{ color: C.textTertiary, fontSize: 12, marginBottom: 12 }}>填入 CDN 地址加速首页加载，留空则使用默认</Text>
+              <TextInput
+                style={{ borderWidth: 1, borderColor: C.divider, borderRadius: 10, padding: 12, color: C.textPrimary, backgroundColor: C.background, fontSize: 14 }}
+                placeholder="http://comic.ojason.top/jm-config.json" placeholderTextColor={C.textTertiary}
+                value={configUrlDraft} onChangeText={setConfigUrlDraft}
+                autoCapitalize="none" autoCorrect={false}
+              />
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+                <Pressable onPress={() => setShowConfigModal(false)} style={{ flex: 1, borderRadius: 10, padding: 12, alignItems: 'center', backgroundColor: C.surface, borderWidth: 1, borderColor: C.divider }}>
+                  <Text style={{ color: C.textPrimary, fontWeight: '600' }}>取消</Text>
+                </Pressable>
+                <Pressable onPress={() => {
+                  setCustomConfigUrl(configUrlDraft);
+                  setShowConfigModal(false);
+                }} style={{ flex: 1, borderRadius: 10, padding: 12, alignItems: 'center', backgroundColor: C.primary }}>
+                  <Text style={{ color: '#fff', fontWeight: '600' }}>保存</Text>
+                </Pressable>
+              </View>
+            </View>
+          </Modal>
             <View style={styles.toggleGroup}>
               <Pressable onPress={() => setFavoriteMode('cloud')} style={[styles.toggleBtn, favoriteMode === 'cloud' && styles.toggleBtnActive]}>
                 <Text style={[styles.toggleText, favoriteMode === 'cloud' && styles.toggleTextActive]}>云端</Text>
