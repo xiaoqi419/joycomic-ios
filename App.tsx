@@ -49,6 +49,7 @@ import { AboutScreen } from './src/screens/AboutScreen';
 import { ImageSearchScreen } from './src/screens/ImageSearchScreen';
 import { DownloadListScreen } from './src/screens/DownloadListScreen';
 import { LogsScreen } from './src/screens/LogsScreen';
+import { ShuntSelectorScreen } from './src/screens/ShuntSelectorScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -190,6 +191,8 @@ function AppInner() {
           options={{ headerShown: false }} />
         <Stack.Screen name="Logs" component={withErrorBoundary(LogsScreen, '日志')}
           options={{ headerShown: false }} />
+        <Stack.Screen name="ShuntSelector" component={withErrorBoundary(ShuntSelectorScreen, '源')}
+          options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -254,9 +257,10 @@ export default function App() {
 
   useEffect(() => {
     if (ready) {
-      const { shunts } = useSettingsStore.getState();
-      if (shunts.length > 0) {
-        setShowSourceSelect(true);
+      // 默认为快速通道
+      const { shunts, selectedShuntKey } = useSettingsStore.getState();
+      if (selectedShuntKey === 0 && shunts.some((s) => s.key === 0)) {
+        selectShunt(0);
       }
     }
   }, [ready]);

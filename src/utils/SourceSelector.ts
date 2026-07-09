@@ -11,7 +11,7 @@ const KEY = '@jmcomic.selectedShuntKey';
 export async function loadSelectedShunt(): Promise<number | null> {
   try {
     const v = await AsyncStorage.getItem(KEY);
-    return v ? parseInt(v, 10) : null;
+    return v ? parseInt(v, 10) : 0;
   } catch { return null; }
 }
 

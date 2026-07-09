@@ -361,19 +361,14 @@ export function MemberScreen() {
             </View>
           } />
           {shunts.length > 0 && (
-            <Row label="源/线路" right={
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, maxWidth: 200 }}>
-                {shunts.map((s) => (
-                  <Pressable
-                    key={s.key}
-                    onPress={() => selectShunt(s.key)}
-                    style={[styles.toggleBtn, selectedShuntKey === s.key && styles.toggleBtnActive]}
-                  >
-                    <Text style={[styles.toggleText, selectedShuntKey === s.key && styles.toggleTextActive]}>{s.title}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            } />
+            <Pressable onPress={() => nav.navigate('ShuntSelector')}>
+              <Row label="源/线路" right={
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={styles.rowValue}>{shunts.find((s) => s.key === selectedShuntKey)?.title || '快速通道'}</Text>
+                  <MaterialIcons name="chevron-right" size={18} color={C.textTertiary} />
+                </View>
+              } />
+            </Pressable>
           )}
           <Row label={t('member.language')} right={
             <View style={styles.toggleGroup}>
