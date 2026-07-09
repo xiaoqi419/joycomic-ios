@@ -241,6 +241,26 @@ export function ReaderScreen() {
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: '#9895A0' }}>暂无内容</Text>
         </View>
+      ) : isVertical ? (
+        <FlatList
+          ref={flatRef}
+          data={pages}
+          keyExtractor={(_, i) => String(i)}
+          renderItem={renderItem}
+          showsVerticalScrollIndicator={false}
+          pagingEnabled={false}
+          windowSize={7}
+          maxToRenderPerBatch={5}
+          onScrollBeginDrag={() => { topAnim.setValue(0); bottomAnim.setValue(0); }}
+          onMomentumScrollEnd={(e) => {
+            const y = e.nativeEvent.contentOffset.y;
+            let acc = 0;
+            for (let i = 0; i < pages.length; i++) {
+              acc += imageHeights[i] || W * 1.4;
+              if (y < acc) { setCurrentIdx(i); break; }
+            }
+          }}
+        />
       ) : (
         <Pressable style={{ flex: 1 }} onPress={handleTap}>
           <FlatList
@@ -250,26 +270,13 @@ export function ReaderScreen() {
             renderItem={renderItem}
             windowSize={7}
             maxToRenderPerBatch={5}
-                        {...(isVertical
-              ? { showsVerticalScrollIndicator: false, pagingEnabled: false }
-              : { horizontal: true, pagingEnabled: true, showsHorizontalScrollIndicator: false }
-            )}
+            horizontal pagingEnabled
+            showsHorizontalScrollIndicator={false}
             onScrollBeginDrag={() => { topAnim.setValue(0); bottomAnim.setValue(0); }}
             onMomentumScrollEnd={(e) => {
-              if (isVertical) {
-                // 垂直模式：按累计高度估算页面索引
-                const y = e.nativeEvent.contentOffset.y;
-                let acc = 0;
-                for (let i = 0; i < pages.length; i++) {
-                  acc += imageHeights[i] || W * 1.4;
-                  if (y < acc) { setCurrentIdx(i); break; }
-                }
-              } else {
-                const idx = Math.round(e.nativeEvent.contentOffset.x / W);
-                setCurrentIdx(Math.min(idx, pages.length - 1));
-              }
+              const idx = Math.round(e.nativeEvent.contentOffset.x / W);
+              setCurrentIdx(Math.min(idx, pages.length - 1));
             }}
-            getItemLayout={isVertical ? undefined : (_, index) => ({ length: W, offset: W * index, index })}
           />
         </Pressable>
       )}
