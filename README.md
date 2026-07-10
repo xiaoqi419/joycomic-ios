@@ -6,6 +6,9 @@
     <a href="https://joycomic.ojason.top">官网</a> ·
     <a href="https://github.com/xiaoqi419/joycomic-ios/releases">下载 IPA</a>
   </p>
+  <p align="center">
+    <a href="https://linux.do/">学AI，上L站</a>
+  </p>
 </div>
 
 ---
